@@ -1,25 +1,25 @@
-
-
-
-
 #[cfg(test)]
 mod tests {
     use std::env;
     use std::ffi;
-    use std::path::{Path, PathBuf};
-    use std::string::String;
     use std::fs::File;
     use std::io::BufReader;
     use std::io::Read;
+    use std::path::{Path, PathBuf};
+    use std::string::String;
+    use std::time::{Duration, Instant};
+    use std::thread::sleep;
+    // use std::vec::Vec;
+    use std::iter::FromIterator;
+    use std::convert::AsRef;
 
     // https://m4rw3r.github.io/rust-questionmark-operator
-    fn read_a_file(file_name: &Path)  -> std::io::Result<()> {
+    fn read_a_file<T: AsRef<Path>>(file_name: T) -> std::io::Result<String> {
         let file = File::open(file_name)?;
         let mut buf_reader = BufReader::new(file);
         let mut contents = String::new();
         buf_reader.read_to_string(&mut contents)?;
-        assert_eq!(contents, "Hello, world!");
-        Ok(())
+        Ok(contents)
     }
 
     fn get_fixture_file(postfix: &str) -> std::io::Result<PathBuf> {
@@ -37,8 +37,34 @@ mod tests {
 
         match result {
             Ok(_) => (),
-            Err(e) => println!("xxxxxxxxxxxxxx{}xxxxxxxxxxxxxxxxxxxxxxxx", e)
+            Err(e) => println!("xxxxxxxxxxxxxx{}xxxxxxxxxxxxxxxxxxxxxxxx", e),
         }
+    }
+
+    #[test]
+    fn test_read_utf8() {
+        let t_file = get_fixture_file("utf8").unwrap();
+        let result = read_a_file(&t_file);
+        let contents = result.unwrap();
+        let c = "开始学习RUST。";
+        assert_eq!(contents, c);
+        // There is no more direct way because char is a 32-bit Unicode scalar value, 
+        // and strings in Rust are sequences of bytes (u8) representing text in UTF-8 encoding. They do not map directly to sequences of chars.
+        let t_file = get_fixture_file("utf8_bom").unwrap();
+        let result = read_a_file(&t_file);
+        let contents = result.unwrap();
+        let utf8_bom = '\u{feff}';
+
+        let mut chars = contents.chars();
+        let px = chars.next();
+        assert_eq!(px, Some(utf8_bom));
+
+        let c = "开始学习RUST。";
+        // chars.fold(init: B, mut f: F)
+        // let mut v: Vec<char> = c.chars().collect();
+        // v.remove(0);
+        let c1_bom_choped = String::from_iter(chars);
+        assert_eq!(c, c1_bom_choped);
     }
 
     #[test]
@@ -58,7 +84,20 @@ mod tests {
         assert_eq!(t_file_prefix, t_file_prefix_1);
         // str slice is valid utf8.
         let t_file = format!("{}{}", t_file_prefix, "gb18030.txt");
-        assert_eq!(t_file, "fixtrues/directory_access/directory_access_gb18030.txt");
+        assert_eq!(
+            t_file,
+            "fixtrues/directory_access/directory_access_gb18030.txt"
+        );
         assert!(t_file_prefix.len() > 0);
     }
+
+    #[test]
+    fn test_std_time() {
+        let now = Instant::now();
+        // we sleep for 2 seconds
+        sleep(Duration::new(2, 0));
+        // it prints '2'
+        println!("xxxxxxx{}xxxxxxxxxx", now.elapsed().as_secs());
+    }
+
 }

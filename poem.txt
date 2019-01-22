@@ -1,3 +1,30 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 I'm nobody! Who are you?
 Are you nobody, too?
 Then there's a pair of us - don't tell!
@@ -7,3 +34,8 @@ How dreary to be somebody!
 How public, like a frog
 To tell your name the livelong day
 To an admiring bog!
+
+cargo install diesel_cli --no-default-features --features "sqlite-bundled"
+diesel setup
+.env:
+    DATABASE_URL=sqlitedb_in_here/abc.db

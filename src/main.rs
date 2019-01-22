@@ -3,6 +3,7 @@ use std::process;
 use minigrep;
 
 mod directory_access;
+mod test_diesel;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

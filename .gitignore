@@ -2,3 +2,5 @@
 **/*.rs.bk
 Cargo.lock
 .vscode/
+sqltedb_in_here/
+.env
