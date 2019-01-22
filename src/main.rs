@@ -1,9 +1,14 @@
+#[macro_use]
+extern crate lazy_static;
+
 use std::env;
 use std::process;
 use minigrep;
 
 mod directory_access;
 mod test_diesel;
+mod mysql;
+mod fxiture_util;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

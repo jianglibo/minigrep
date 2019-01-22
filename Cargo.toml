@@ -9,3 +9,5 @@ actix-web = "0.7"
 chrono = "0.4"
 diesel = { version = "1.4.0", features = ["sqlite"] }
 dotenv = "0.13.0"
+regex = "1"
+lazy_static = "1.2.0"
