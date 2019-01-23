@@ -17,16 +17,22 @@ use std::vec::Vec;
 
 // It's better to hold owned value for a struct.
 #[derive(Debug)]
-struct MycnfBlock {
+pub struct MycnfBlock {
     name: String,
     lines: Vec<String>,
 }
 
 #[derive(Debug)]
-struct MyCnfFile {
+pub struct MyCnfFile {
     pre_lines: Vec<String>,
     post_lines: Vec<String>,
     blocks: Vec<MycnfBlock>,
+}
+
+impl MyCnfFile {
+    fn get_config(key: &str) -> Option<(&str, &str)> {
+        Some(("a", "b"))
+    }
 }
 
 // fn get_lines<'a, T: AsRef<Path>>(file: T) -> std::io::Result<&'a [&'a str]> {
@@ -39,64 +45,89 @@ fn get_lines<'a, T: AsRef<Path>>(file: T) -> std::io::Result<Vec<String>> {
     // lines
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::fxiture_util::get_fixture_file;
-    use regex::Regex;
-    #[test]
-    fn test_get_lines<'a>() {
-        let lines = super::get_lines(get_fixture_file(&["mysql", "my.cnf"]).unwrap()).unwrap();
-        assert_eq!(lines.len(), 27);
-        assert_eq!(
-            lines[0],
-            "# For advice on how to change settings please see"
-        );
-        let mut mycnf = super::MyCnfFile {
-            pre_lines: vec![],
-            post_lines: vec![],
-            blocks: vec![],
-        };
-        lazy_static! {
-            static ref RE: Regex = Regex::new(r"^\[(?P<blockname>[^\[\]]+)\]$").unwrap();
-        }
+pub fn get_mycnf<T: AsRef<Path>>(file: T) -> std::io::Result<MyCnfFile> {
+    let file1 = File::open(file)?;
+    let lines_result: std::result::Result<Vec<String>, _> = BufReader::new(file1).lines().collect();
+    let lines = lines_result.unwrap();
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r"^\[(?P<blockname>[^\[\]]+)\]$").unwrap();
+    }
+    let mut mycnf = MyCnfFile {
+        pre_lines: vec![],
+        post_lines: vec![],
+        blocks: vec![],
+    };
+    let mut block_lines: Vec<String> = Vec::new();
+    let mut cur_block_name: Option<String> = None;
 
-        let mut cur_block: Option<super::MycnfBlock> = None;
-
-        let new_block = |bn: &str| {
-            Some(super::MycnfBlock {
-                name: String::from(bn),
-                lines: vec![],
-            })
-        };
-
-        let mut block_lines: Vec<String> = Vec::new();
-
-        for line in lines {
-            let trimed_line: &str = line.trim();
-            let caps_op = RE.captures(trimed_line);
-            match caps_op {
-                Some(caps) => {
-                    // is block name line.
-                    let bn = &caps["blockname"];
-                    if cur_block.is_some() {
-                        let cb = cur_block.unwrap();
-                        for bl in block_lines {
-                            cb.lines.push(bl);
-                        }
-                        mycnf.blocks.push(cb);
-                    }
-                    cur_block = new_block(bn);
+    for line in lines {
+        let trimed_line: &str = line.trim();
+        let caps_op = RE.captures(trimed_line);
+        match caps_op {
+            Some(caps) => {
+                // is block name line, a new block name line.
+                let bn = &caps["blockname"];
+                if let Some(bn) = cur_block_name {
+                    mycnf.blocks.push(MycnfBlock {
+                        name: bn,
+                        lines: block_lines,
+                    });
+                    block_lines = Vec::new();
                 }
-                None => {
-                    // is block content line.
-                    if cur_block.is_some() {
-                        block_lines.push(trimed_line.to_owned());
-                        // cur_block.unwrap().lines.push(trimed_line.to_owned());
-                    } else {
-                        mycnf.pre_lines.push(trimed_line.to_owned());
-                    }
+                cur_block_name = Some(bn.to_owned());
+            }
+            None => {
+                // is block content line.
+                if cur_block_name.is_some() {
+                    block_lines.push(trimed_line.to_owned());
+                } else {
+                    mycnf.pre_lines.push(trimed_line.to_owned());
                 }
             }
         }
+    }
+    if let Some(bn) = cur_block_name {
+        if let Some(blk) = mycnf.blocks.last() {
+            if blk.name != bn {
+                mycnf.blocks.push(MycnfBlock {
+                    name: bn,
+                    lines: block_lines,
+                });
+            }
+        } else {
+            mycnf.blocks.push(MycnfBlock {
+                name: bn,
+                lines: block_lines,
+            });
+        }
+    }
+    Ok(mycnf)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::fxiture_util::{get_fixture_file, print_stars};
+    use regex::Regex;
+
+    #[test]
+    fn test_get_lines<'a>() {
+        // let lines = super::get_lines(get_fixture_file(&["mysql", "my.cnf"]).unwrap()).unwrap();
+        // assert_eq!(lines.len(), 27);
+        // assert_eq!(
+        //     lines[0],
+        //     "# For advice on how to change settings please see"
+        // );
+        let p = get_fixture_file(&["mysql", "my.cnf"]);
+        let mycnf = super::get_mycnf(p.unwrap()).unwrap();
+
+        let v = vec![1, 2, 3];
+        if let Some(v1) = v.last() {
+            assert_eq!(v1, &3);
+        }
+
+        assert_eq!(v.len(), 3);
+        assert_eq!(mycnf.pre_lines.len(), 3);
+
+        assert_eq!(mycnf.blocks.len(), 1);
     }
 }
