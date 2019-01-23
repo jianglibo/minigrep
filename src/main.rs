@@ -9,6 +9,7 @@ mod directory_access;
 mod test_diesel;
 mod mysql;
 mod fxiture_util;
+mod test_string;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
