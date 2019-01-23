@@ -21,6 +21,10 @@ pub fn get_fixture_file(postfix: &[&str]) -> std::io::Result<PathBuf> {
     Ok(new_path)
 }
 
+pub fn print_stars<T: AsRef<str>>(v: T) {
+    println!("xxxxxxxxxxxxxx{}xxxxxxxxxxxx", v.as_ref());
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
