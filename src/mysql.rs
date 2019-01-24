@@ -50,6 +50,18 @@ impl MyCnfFile {
         }
         None
     }
+
+    fn set_block_key_value(&mut self, block_name: &str, key_name: &str, value: &str) {
+        let b_op = &self.blocks.iter().find(|blk| blk.name == block_name);
+        if let Some(b) = b_op {
+            println!("{:?}",b);
+        } else {
+            &self.blocks.push(MycnfBlock {
+                name: block_name.to_owned(),
+                lines: vec![format!("{}={}", key_name, value)]
+            });
+        }
+    }
 }
 
 fn get_lines<'a, T: AsRef<Path>>(file: T) -> std::io::Result<Vec<String>> {
@@ -155,5 +167,28 @@ mod tests {
         let expect = ("log-error".to_owned(), "/var/log/mysqld.log".to_owned());
 
         assert_eq!(kv.unwrap(), expect);
+    }
+
+    #[test]
+    fn test_trim() {
+        let s = "#  abc=55 ";
+        let s_trimed = s.trim_start_matches('#').trim();
+        let ss: Vec<&str> = s_trimed.splitn(2, '=').collect();
+        assert_eq!(ss[0], "abc");
+        assert_eq!(ss[1], "55");
+
+        let s = " [mysqld] ";
+        assert!("][".contains(']'));
+        assert!("][".contains('['));
+        let v: Vec<_> = s.trim().match_indices(|c| "[]".contains(c)).collect();
+        let s_trimed = s.trim();
+        assert!(s_trimed.starts_with('['));
+        let content = &(s_trimed[1..s_trimed.len()-1]);
+        assert_eq!(content, "mysqld");
+
+        let x: &[_] = &['[', ']'];
+        let ss = s_trimed.trim_matches(x);
+        assert_eq!(ss, "mysqld");
+        assert_eq!(v, [(0, "["), (7, "]")]);
     }
 }
