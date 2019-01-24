@@ -157,4 +157,14 @@ mod tests {
         println!("outer long: {}", long_lived_binding);
     }
 
+    #[test]
+    fn test_bool() {
+        let y = true;
+        assert!(y);
+        match y {
+            true => (),
+            false => ()
+        }
+    }
+
 }

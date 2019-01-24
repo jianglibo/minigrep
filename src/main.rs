@@ -10,6 +10,7 @@ mod test_diesel;
 mod mysql;
 mod fxiture_util;
 mod test_string;
+mod test_fun;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

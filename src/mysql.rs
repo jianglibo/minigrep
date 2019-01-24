@@ -24,44 +24,57 @@ pub struct MycnfBlock {
 
 #[derive(Debug)]
 pub struct MyCnfFile {
+     // Vec is an owned value. String too.
     pre_lines: Vec<String>,
-    post_lines: Vec<String>,
     blocks: Vec<MycnfBlock>,
 }
 
 impl MyCnfFile {
-    fn get_config(key: &str) -> Option<(&str, &str)> {
-        Some(("a", "b"))
+    // Because Option implements the Copy trait.
+    fn get_config(&self, block_name: &str, key_name: &str) -> Option<(String, String)> {
+        let b_op = &self.blocks.iter().find(|blk| blk.name == block_name);
+        if let Some(b) = b_op {
+            let kv: Option<(String, String)> = b.lines.iter().find_map(|line| {
+                if line.starts_with('#') {
+                    return None;
+                } else {
+                    let pair: Vec<&str> = line.splitn(2, '=').collect();
+                    if pair.len() == 2 && pair[0].trim() == key_name {
+                        return Some((pair[0].trim().to_owned(), pair[1].trim().to_owned()));
+                    } else {
+                        return None;
+                    }
+                }
+            });
+            return kv;
+        }
+        None
     }
 }
 
-// fn get_lines<'a, T: AsRef<Path>>(file: T) -> std::io::Result<&'a [&'a str]> {
-// fn get_lines<'a, T: AsRef<Path>>(file: T) -> std::io::Result<std::io::Lines<String>> {
 fn get_lines<'a, T: AsRef<Path>>(file: T) -> std::io::Result<Vec<String>> {
     let file = File::open(file)?;
     BufReader::new(file).lines().collect()
-    // let lines: std::io::Result<Vec<String>> = bf.lines().collect();
-    // let lines: Vec<std::io::Result<String>> = bf.lines().collect();
-    // lines
 }
 
 pub fn get_mycnf<T: AsRef<Path>>(file: T) -> std::io::Result<MyCnfFile> {
+// pub fn get_mycnf<'a>(lines: &'a Vec<String>) -> std::io::Result<MyCnfFile<'a>> {
     let file1 = File::open(file)?;
     let lines_result: std::result::Result<Vec<String>, _> = BufReader::new(file1).lines().collect();
     let lines = lines_result.unwrap();
+
     lazy_static! {
         static ref RE: Regex = Regex::new(r"^\[(?P<blockname>[^\[\]]+)\]$").unwrap();
     }
     let mut mycnf = MyCnfFile {
         pre_lines: vec![],
-        post_lines: vec![],
         blocks: vec![],
     };
     let mut block_lines: Vec<String> = Vec::new();
     let mut cur_block_name: Option<String> = None;
 
     for line in lines {
-        let trimed_line: &str = line.trim();
+        let trimed_line = line.trim();
         let caps_op = RE.captures(trimed_line);
         match caps_op {
             Some(caps) => {
@@ -118,6 +131,7 @@ mod tests {
         //     "# For advice on how to change settings please see"
         // );
         let p = get_fixture_file(&["mysql", "my.cnf"]);
+        // let lines = super::get_lines(p.unwrap()).unwrap();
         let mycnf = super::get_mycnf(p.unwrap()).unwrap();
 
         let v = vec![1, 2, 3];
@@ -129,5 +143,17 @@ mod tests {
         assert_eq!(mycnf.pre_lines.len(), 3);
 
         assert_eq!(mycnf.blocks.len(), 1);
+
+        let trim_str = |s: &'a str| -> &'a str { 
+            s.trim()
+        };
+
+        let s_trimed = trim_str(" abc ");
+        assert_eq!(s_trimed, "abc");
+
+        let kv = mycnf.get_config("mysqld", "log-error");
+        let expect = ("log-error".to_owned(), "/var/log/mysqld.log".to_owned());
+
+        assert_eq!(kv.unwrap(), expect);
     }
 }
