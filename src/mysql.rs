@@ -51,10 +51,17 @@ impl MyCnfFile {
         None
     }
 
-    fn set_block_key_value(&mut self, block_name: &str, key_name: &str, value: &str) {
-        let b_op = &self.blocks.iter().find(|blk| blk.name == block_name);
+    // mut self, this is start point. you can change self.
+    // self.blocks.iter_mut to borrow mutable block.
+    // mutability was determined at borrow point.
+    fn set_block_key_value(self: &mut Self, block_name: &str, key_name: &str, value: &str) {
+        let b_op = self.blocks.iter_mut().find(|blk| blk.name == block_name);
         if let Some(b) = b_op {
-            println!("{:?}",b);
+            // let lines_mut = &mut (b.lines);
+            // let () = b;
+            for line in b.lines.iter_mut() {
+
+            }
         } else {
             &self.blocks.push(MycnfBlock {
                 name: block_name.to_owned(),
