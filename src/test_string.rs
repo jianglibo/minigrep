@@ -2,6 +2,7 @@
 mod tests {
     use crate::fxiture_util::print_stars;
     use std::vec::Vec;
+    use std::convert::Into;
 
     #[derive(Debug)]
     struct Asss {
@@ -165,6 +166,24 @@ mod tests {
             true => (),
             false => ()
         }
+    }
+
+    #[test]
+    fn test_split_str() {
+        let t = [1, 2];
+        let [a, b] = [1, 2];
+        assert!(a == 1);
+        assert!(b == 2);
+
+        let (a, b) = (1, 2);
+        assert!(a == 1);
+        assert!(b == 2);
+        assert!(t.len() == 2);
+
+        match t {
+            [a, b] => println!("{}{}", a, b)
+        };
+        // let [a, b]: &str = "a=b=c".splitn(2, '=').into();
     }
 
 }
