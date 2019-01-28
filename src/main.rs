@@ -3,7 +3,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_yaml;
-
+extern crate notify;
 extern crate yaml_rust;
 
 use std::env;
@@ -18,6 +18,7 @@ mod test_string;
 mod test_fun;
 mod borg;
 mod common_util;
+mod watcher;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
