@@ -1,6 +1,7 @@
 use std::env;
 use std::path::{PathBuf};
 
+#[allow(dead_code)]
 pub fn get_fixture_file(postfix: &[&str], canonicalize: bool) -> std::io::Result<PathBuf> {
     let mut path_result = env::current_dir()?;
     path_result = path_result.join("fixtrues");
@@ -15,6 +16,7 @@ pub fn get_fixture_file(postfix: &[&str], canonicalize: bool) -> std::io::Result
     }
 }
 
+#[allow(dead_code)]
 pub fn print_stars<T: AsRef<str>>(v: T) {
     println!("xxxxxxxxxxxxxx{}xxxxxxxxxxxx", v.as_ref());
 }

@@ -5,3 +5,7 @@ Cargo.lock
 sqltedb_in_here/
 .env
 **/notingit/
+**/mysql_configuration.1.yml
+**/mysql_configuration.2.yml
+**/borg_configuration.1.yml
+**/borg_configuration.2.yml

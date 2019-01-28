@@ -21,6 +21,7 @@ impl Config {
     }
 }
 
+#[allow(dead_code)]
 fn parse_config(args: &[String]) -> Config {
     let query = args[1].clone();
     let filename = args[2].clone();
@@ -49,6 +50,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+#[allow(dead_code)]
 fn visit_dirs(dir: &Path, cb: &Fn(&DirEntry)) -> io::Result<()> {
     if dir.is_dir() {
         for entry in fs::read_dir(dir)? {

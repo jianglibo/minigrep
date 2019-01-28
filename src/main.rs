@@ -1,5 +1,10 @@
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_yaml;
+
+extern crate yaml_rust;
 
 use std::env;
 use std::process;
@@ -11,6 +16,8 @@ mod mysql;
 mod fxiture_util;
 mod test_string;
 mod test_fun;
+mod borg;
+mod common_util;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
