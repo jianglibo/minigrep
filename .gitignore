@@ -3,6 +3,7 @@
 Cargo.lock
 .vscode/
 sqltedb_in_here/
+sqltedb_in_here/**
 .env
 **/notingit/
 **/mysql_configuration.1.yml
