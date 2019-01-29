@@ -12,3 +12,23 @@ cargo install diesel_cli --no-default-features --features "sqlite-bundled"
 diesel setup
 .env:
     DATABASE_URL=sqlitedb_in_here/abc.db
+    SQLITE3_LIB_DIR=F:\sqlite-dll-win64-x64-3260000
+
+diesel migration generate create_posts
+diesel migration run
+diesel migration redo
+
+& 'F:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.16.27023\bin\Hostx64\x64\dumpbin.exe' /dependents C:\Users\Administrator\.cargo\bin\diesel.exe
+https://sqlite.org/download.html sqlite-dll-win64-x64-3260000.zip
+
+F:\sqlite-dll-win64-x64-3260000, sqlite3.def, sqlite3.dll,
+We'll want to generate a .lib file from the .def file.
+lib /def:sqlite3.def /out:sqlite3.lib
+
+Set-Item -Path env:SQLITE3_LIB_DIR -Value "F:\sqlite-dll-win64-x64-3260000"
+
+below does't work. set system environment is simpler.
+"rust.cargoEnv": {
+    "SQLITE3_LIB_DIR": "F:/sqlite-dll-win64-x64-3260000"
+}
+and need to add sqlite path to system path.

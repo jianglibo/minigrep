@@ -19,17 +19,26 @@ mod test_fun;
 mod borg;
 mod common_util;
 mod watcher;
+mod db;
+pub mod models;
+pub mod schema;
+
+#[macro_use]
+extern crate diesel;
+extern crate dotenv;
+
+
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    // let args: Vec<String> = env::args().collect();
 
-    let config = minigrep::Config::new(&args).unwrap_or_else(|err| {
-        println!("Problem parsing arguments: {}", err);
-        process::exit(1);
-    });
+    // let config = minigrep::Config::new(&args).unwrap_or_else(|err| {
+    //     println!("Problem parsing arguments: {}", err);
+    //     process::exit(1);
+    // });
 
-    if let Err(e) = minigrep::run(config) {
-        println!("Application error: {}", e);
-        process::exit(1);
-    }
+    // if let Err(e) = minigrep::run(config) {
+    //     println!("Application error: {}", e);
+    //     process::exit(1);
+    // }
 }
