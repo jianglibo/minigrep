@@ -8,7 +8,7 @@ pub struct FsChangeLog {
     pub new_name: Option<String>,
     pub created_at: NaiveDateTime,
     pub modified_at: Option<NaiveDateTime>,
-    pub notified_at: Option<NaiveDateTime>,
+    pub notified_at: NaiveDateTime,
     pub size: i32,
 }
 
@@ -19,6 +19,6 @@ pub struct NewFsChangeLog<'a> {
     pub new_name: Option<&'a str>,
     pub created_at: NaiveDateTime,
     pub modified_at: Option<NaiveDateTime>,
-    pub notified_at: Option<NaiveDateTime>,
+    pub notified_at: NaiveDateTime,
     pub size: i32,
 }

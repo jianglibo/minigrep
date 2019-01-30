@@ -5,7 +5,7 @@ table! {
         new_name -> Nullable<Text>,
         created_at -> Timestamp,
         modified_at -> Nullable<Timestamp>,
-        notified_at -> Nullable<Timestamp>,
+        notified_at -> Timestamp,
         size -> Integer,
     }
 }

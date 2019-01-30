@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 actix-web = "0.7"
 chrono = "0.4"
-diesel = { version = "1.4.1", features = ["sqlite", "chrono"] }
+diesel = { version = "1.4.1", features = ["sqlite", "chrono", "r2d2"] }
 dotenv = "0.13.0"
 regex = "1"
 lazy_static = "1.2.0"
