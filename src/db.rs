@@ -50,13 +50,11 @@ impl FsChangeLog {
 
     pub fn find_all(num: i64) -> Vec<FsChangeLog> {
         fs_c_log_dsl::fs_change_log
-                    .limit(num)
-                    .load::<FsChangeLog>(&DB_POOL.get().unwrap())
-                    .expect("Error loading posts")
+            .limit(num)
+            .load::<FsChangeLog>(&DB_POOL.get().unwrap())
+            .expect("Error loading posts")
     }
-            
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -68,17 +66,37 @@ mod tests {
         FsChangeLog::delete_all();
         assert_eq!(FsChangeLog::find_all(5).len(), 0);
 
-        let num: usize = FsChangeLog::create(
-            r"c:\abc.txt",
-            None,
-            Utc::now().naive_utc(),
-            None,
-            0,
-        );
+        let num: usize = FsChangeLog::create(r"c:\abc.txt", None, Utc::now().naive_utc(), None, 0);
         assert_eq!(num, 1);
         let items: Vec<FsChangeLog> = FsChangeLog::find_all(5);
         assert_eq!(items.len(), 1);
         assert_eq!(&items[0].file_name, r"c:\abc.txt");
+    }
+
+    #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+    pub enum ParseError {
+        VariantNotFound,
+    }
+
+    impl std::fmt::Display for ParseError {
+        fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+            // We could use our macro here, but this way we don't take a dependency on the
+            // macros crate.
+            match self {
+                &ParseError::VariantNotFound => write!(f, "Matching variant not found"),
+            }
+        }
+    }
+
+    impl std::error::Error for ParseError {
+        fn description(&self) -> &str {
+            match self {
+            &ParseError::VariantNotFound => {
+                "Unable to find a variant of the given enum matching the string given. Matching \
+                 can be extended with the Serialize attribute and is case sensitive."
+            }
+        }
+        }
     }
 
     #[test]
@@ -87,7 +105,7 @@ mod tests {
         use std::str::FromStr;
         enum AnEnum {
             A,
-            B(String)
+            B(String),
         }
 
         impl fmt::Display for AnEnum {
@@ -100,7 +118,7 @@ mod tests {
         }
 
         impl std::str::FromStr for AnEnum {
-            type Err = String;
+            type Err = ParseError;
 
             fn from_str(s: &str) -> Result<AnEnum, Self::Err> {
                 match s {
@@ -108,8 +126,8 @@ mod tests {
                     bs if s.starts_with("B:") => {
                         let ss: Vec<&str> = bs.split(":").collect();
                         Ok(AnEnum::B(String::from(ss[1])))
-                    },
-                    _ => Err("unknown".to_owned()),
+                    }
+                    _ => Err(ParseError::VariantNotFound),
                 }
             }
         }
@@ -120,11 +138,8 @@ mod tests {
         let name: String = AnEnum::B(String::from("hello")).to_string();
         assert_eq!(name, "B:hello");
 
-
-        let an: Result<AnEnum, _> = AnEnum::from_str("B:abc");
+        let an: Result<AnEnum, ParseError> = AnEnum::from_str("B:abc");
 
         assert!(an.is_ok());
-
-
     }
 }
