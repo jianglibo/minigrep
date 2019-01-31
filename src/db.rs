@@ -1,10 +1,13 @@
-// use crate::models::*;
+use crate::models::fs_change_log_model::{FsChangeLog};
 // use crate::schema::fs_change_log;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::SqliteConnection;
 use std::sync::Arc;
 use std::vec::Vec;
+use ::actix::prelude::*;
+use actix_web::*;
+use chrono::{NaiveDateTime, Utc};
 
 // https://github.com/diesel-rs/diesel/blob/master/diesel/src/r2d2.rs
 
@@ -17,7 +20,56 @@ lazy_static! {
     };
 }
 
+pub struct DbExecutor(pub Pool<ConnectionManager<SqliteConnection>>);
 
+/// This is only message that this actor can handle, but it is easy to extend
+/// number of messages.
+pub struct CreateFsChangeLog {
+    pub event_type: &'a str,
+    pub file_name: &'a str,
+    pub new_name: Option<&'a str>,
+    pub created_at: NaiveDateTime,
+    pub modified_at: Option<NaiveDateTime>,
+    pub notified_at: NaiveDateTime,
+    pub size: i64,
+}
+
+impl Message for CreateFsChangeLog {
+    type Result = Result<FsChangeLog, Error>;
+}
+
+impl Actor for DbExecutor {
+    type Context = SyncContext<Self>;
+}
+
+impl Handler<CreateFsChangeLog> for DbExecutor {
+    type Result = Result<FsChangeLog, Error>;
+
+    fn handle(&mut self, msg: CreateFsChangeLog, _: &mut Self::Context) -> Self::Result
+    {
+        use self::schema::users::dsl::*;
+
+        // Create insertion model
+        let uuid = format!("{}", uuid::Uuid::new_v4());
+        let new_user = models::NewUser {
+            id: &uuid,
+            name: &msg.name,
+        };
+
+        // normal diesel operations
+        diesel::insert_into(users)
+            .values(&new_user)
+            .execute(&self.0)
+            .expect("Error inserting person");
+
+        let mut items = users
+            .filter(id.eq(&uuid))
+            .load::<models::User>(&self.0)
+            .expect("Error loading person");
+
+        Ok(items.pop().unwrap())
+    }
+}
 
 
 #[cfg(test)]

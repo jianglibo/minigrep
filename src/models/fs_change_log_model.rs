@@ -69,6 +69,13 @@ impl FsChangeLog {
             .load::<FsChangeLog>(&DB_POOL.get().unwrap())
             .expect("Error loading posts")
     }
+
+    pub fn find_by_id(id: i32) -> Vec<FsChangeLog> {
+        fs_c_log_dsl::fs_change_log
+            .filter(id.eq(&id))
+            .load::<FsChangeLog>(&DB_POOL.get().unwrap())
+            .expect("Error loading posts")
+    }
 }
 
 impl<'a> From<&'a DebouncedEvent> for NewFsChangeLog<'a> {

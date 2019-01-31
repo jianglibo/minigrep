@@ -5,6 +5,8 @@ extern crate serde_derive;
 extern crate serde_yaml;
 extern crate notify;
 extern crate yaml_rust;
+extern crate actix_web;
+extern crate actix;
 
 use std::env;
 use std::process;

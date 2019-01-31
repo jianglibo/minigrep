@@ -34,3 +34,10 @@ below does't work. set system environment is simpler.
     "SQLITE3_LIB_DIR": "F:/sqlite-dll-win64-x64-3260000"
 }
 and need to add sqlite path to system path.
+
+
+vscode settings:
+    "rust.rustup": {
+        "toolchain": "nightly-x86_64-pc-windows-msvc"
+    },
+    "rust.mode": "rls
