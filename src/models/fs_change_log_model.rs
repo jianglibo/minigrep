@@ -6,7 +6,7 @@ use diesel::prelude::*;
 use notify::DebouncedEvent;
 use std::convert::From;
 use std::path::PathBuf;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, UNIX_EPOCH};
 
 #[derive(Queryable)]
 pub struct FsChangeLog {
@@ -17,7 +17,7 @@ pub struct FsChangeLog {
     pub created_at: NaiveDateTime,
     pub modified_at: Option<NaiveDateTime>,
     pub notified_at: NaiveDateTime,
-    pub size: i32,
+    pub size: i64,
 }
 
 #[derive(Insertable)]
@@ -29,7 +29,7 @@ pub struct NewFsChangeLog<'a> {
     pub created_at: NaiveDateTime,
     pub modified_at: Option<NaiveDateTime>,
     pub notified_at: NaiveDateTime,
-    pub size: i32,
+    pub size: i64,
 }
 
 impl FsChangeLog {
@@ -39,7 +39,7 @@ impl FsChangeLog {
         new_name: Option<&'a str>,
         created_at: NaiveDateTime,
         modified_at: Option<NaiveDateTime>,
-        size: i32,
+        size: i64,
     ) -> usize {
         let new_fs_change_log = NewFsChangeLog {
             event_type,
@@ -73,12 +73,30 @@ impl FsChangeLog {
 
 impl<'a> From<&'a DebouncedEvent> for NewFsChangeLog<'a> {
     fn from(de: &'a DebouncedEvent) -> Self {
-        let bd = |src_pbuf: Option<&'a PathBuf>, dst_pbuf: Option<&'a PathBuf>, en: &'a str| -> NewFsChangeLog<'a> {
+        let bd = |src_pbuf: Option<&'a PathBuf>,
+                  dst_pbuf: Option<&'a PathBuf>,
+                  en: &'a str|
+         -> NewFsChangeLog<'a> {
             let ppbuf = dst_pbuf.or(src_pbuf);
 
             let fs_meta = match ppbuf {
                 Some(pbuf) => std::fs::metadata(pbuf).ok(),
                 None => None,
+            };
+
+            let cr_mr_size: (NaiveDateTime, NaiveDateTime, i64) = if let Some(meta) = fs_meta {
+                    let _cr = meta.created().unwrap_or(UNIX_EPOCH)
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap_or(Duration::from_millis(0));
+                    let cr = NaiveDateTime::from_timestamp(_cr.as_secs() as i64, _cr.subsec_nanos());
+                    let _mr = meta.modified().unwrap_or(UNIX_EPOCH)
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap_or(Duration::from_millis(0));
+                    let mr = NaiveDateTime::from_timestamp(_mr.as_secs() as i64, _mr.subsec_nanos());
+                    (cr, mr, meta.len() as i64)
+            } else {
+                let epoch = NaiveDateTime::from_timestamp(0, 0);
+                (epoch, epoch, 0)
             };
 
             NewFsChangeLog {
@@ -95,15 +113,10 @@ impl<'a> From<&'a DebouncedEvent> for NewFsChangeLog<'a> {
                         None => None,
                     }
                 },
-                created_at: if let Some(meta) = fs_meta {
-                    let now = meta.created().unwrap_or(SystemTime::now());
-                    Utc::now().naive_utc()
-                } else {
-                    Utc::now().naive_utc()
-                 },
-                modified_at: None,
+                created_at: cr_mr_size.0,
+                modified_at: Some(cr_mr_size.1),
                 notified_at: Utc::now().naive_utc(),
-                size: 55,
+                size: cr_mr_size.2,
             }
         };
         match de {

@@ -7,6 +7,6 @@ table! {
         created_at -> Timestamp,
         modified_at -> Nullable<Timestamp>,
         notified_at -> Timestamp,
-        size -> Integer,
+        size -> BigInt,
     }
 }

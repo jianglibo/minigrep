@@ -16,5 +16,5 @@ CREATE TABLE fs_change_log (
     created_at DATETIME NOT NULL,
     modified_at DATETIME,
     notified_at DATETIME NOT NULL,
-    size INTEGER NOT NULL DEFAULT 0
+    size BIGINT NOT NULL DEFAULT 0
 );
