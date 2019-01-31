@@ -19,7 +19,10 @@ fn watch(watch_target: &str, howmuch_times: u8) -> notify::Result<()> {
 
     let ep = |event: DebouncedEvent| {
                     match event {
-                        DebouncedEvent::NoticeWrite(pbuf) => print!("noticewrite: {:?}", pbuf),
+                        DebouncedEvent::NoticeWrite(pbuf) => {
+                            DebouncedEvent::NoticeWrite;
+                            print!("noticewrite: {:?}", pbuf);
+                        },
                         DebouncedEvent::NoticeRemove(pbuf) => print!("{:?}", pbuf),
                         DebouncedEvent::Create(pbuf) => print!("{:?}", pbuf),
                         DebouncedEvent::Write(pbuf) => print!("{:?}", pbuf),

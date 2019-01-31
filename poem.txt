@@ -8,6 +8,8 @@ How public, like a frog
 To tell your name the livelong day
 To an admiring bog!
 
+cargo +nightly install racer
+
 cargo install diesel_cli --no-default-features --features "sqlite-bundled"
 diesel setup
 .env:

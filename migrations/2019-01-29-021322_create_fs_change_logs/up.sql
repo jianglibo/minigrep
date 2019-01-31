@@ -10,6 +10,7 @@
 
 CREATE TABLE fs_change_log (
     id INTEGER NOT NULL PRIMARY KEY,
+    event_type VARCHAR CHECK(event_type in ('NoticeWrite', 'NoticeRemove','Create','Write','Chmod','Remove', 'Rename', 'Rescan', 'Other')) NOT NULL,
     file_name VARCHAR NOT NULL,
     new_name VARCHAR,
     created_at DATETIME NOT NULL,

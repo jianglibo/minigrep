@@ -1,7 +1,5 @@
-use crate::models::*;
+// use crate::models::*;
 // use crate::schema::fs_change_log;
-use crate::schema::fs_change_log::dsl as fs_c_log_dsl;
-use chrono::{NaiveDateTime, Utc};
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::SqliteConnection;
@@ -11,7 +9,7 @@ use std::vec::Vec;
 // https://github.com/diesel-rs/diesel/blob/master/diesel/src/r2d2.rs
 
 lazy_static! {
-    static ref DB_POOL: Arc<Pool<ConnectionManager<SqliteConnection>>> = {
+    pub static ref DB_POOL: Arc<Pool<ConnectionManager<SqliteConnection>>> = {
         dotenv::dotenv().ok();
         let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
         let manager = ConnectionManager::<SqliteConnection>::new(database_url);
@@ -19,59 +17,13 @@ lazy_static! {
     };
 }
 
-impl FsChangeLog {
-    pub fn create<'a>(
-        file_name: &'a str,
-        new_name: Option<&'a str>,
-        created_at: NaiveDateTime,
-        modified_at: Option<NaiveDateTime>,
-        size: i32,
-    ) -> usize {
-        let new_fs_change_log = NewFsChangeLog {
-            file_name,
-            new_name,
-            created_at,
-            modified_at,
-            notified_at: Utc::now().naive_utc(),
-            size,
-        };
 
-        diesel::insert_into(fs_c_log_dsl::fs_change_log)
-            .values(&new_fs_change_log)
-            .execute(&DB_POOL.get().unwrap())
-            .expect("Error saving new post")
-    }
 
-    pub fn delete_all() -> usize {
-        diesel::delete(fs_c_log_dsl::fs_change_log)
-            .execute(&DB_POOL.get().unwrap())
-            .expect("Error deleting posts")
-    }
-
-    pub fn find_all(num: i64) -> Vec<FsChangeLog> {
-        fs_c_log_dsl::fs_change_log
-            .limit(num)
-            .load::<FsChangeLog>(&DB_POOL.get().unwrap())
-            .expect("Error loading posts")
-    }
-}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use chrono::Utc;
-
-    #[test]
-    fn test_list_fcl() {
-        FsChangeLog::delete_all();
-        assert_eq!(FsChangeLog::find_all(5).len(), 0);
-
-        let num: usize = FsChangeLog::create(r"c:\abc.txt", None, Utc::now().naive_utc(), None, 0);
-        assert_eq!(num, 1);
-        let items: Vec<FsChangeLog> = FsChangeLog::find_all(5);
-        assert_eq!(items.len(), 1);
-        assert_eq!(&items[0].file_name, r"c:\abc.txt");
-    }
 
     #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
     pub enum ParseError {
