@@ -1,11 +1,10 @@
 #[cfg(test)]
 mod tests {
-    use crate::fxiture_util::print_stars;
+    use crate::fixture_util::print_stars;
     use std::vec::Vec;
-    use std::convert::Into;
 
     #[derive(Debug)]
-    struct Asss {
+    struct AStruct {
         name: String,
         lines: Vec<String>,
     }
@@ -48,8 +47,8 @@ mod tests {
         }
     }
 
-    fn get_ass<T: AsRef<str>>(name: T) -> Asss {
-        let t = Asss {
+    fn get_ass<T: AsRef<str>>(name: T) -> AStruct {
+        let t = AStruct {
             name: String::from(name.as_ref()),
             lines: vec![String::from("hello")],
         };
@@ -63,30 +62,30 @@ mod tests {
         assert!(s == ss);
         assert_eq!(s, ss);
 
-        let asss = Asss {
+        let a_struct = AStruct {
             name: String::from("abc"),
             lines: vec!["hello".to_owned()],
         };
 
-        let mut as1: Vec<Option<&Asss>> = Vec::new();
+        let mut as1: Vec<Option<&AStruct>> = Vec::new();
 
         assert!(as1.len() == 0);
 
         for i in &[1, 2, 3] {
             println!("{}", i);
-            as1.push(Some(&asss));
+            as1.push(Some(&a_struct));
             println!("{:#?}", as1);
             assert!(as1.len() == *i);
         }
-        // immutablality is for variables.
+        // immutability is for variables.
         let mut v_br = "a";
         v_br = "b";
         assert_eq!(v_br, "b");
 
-        let one_as = asss;
+        let one_as = a_struct;
         println!("{:?}", one_as);
 
-        let mut as_br: Option<Asss> = Some(get_ass("aaa"));
+        let mut as_br: Option<AStruct> = Some(get_ass("aaa"));
 
         as_br = Some(get_ass("bbb"));
 

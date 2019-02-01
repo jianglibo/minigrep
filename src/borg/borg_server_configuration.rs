@@ -29,9 +29,7 @@ pub struct BorgServerSideConfiguration {
 
 #[cfg(test)]
 mod tests {
-    use crate::fxiture_util::{get_fixture_file, print_stars};
-    use regex::Regex;
-    use yaml_rust::{YamlLoader, YamlEmitter};
+    use crate::fixture_util::{get_fixture_file};
     use std::fs::File;
     use std::io::Read;
 

@@ -1,33 +1,57 @@
-use crate::models::fs_change_log_model::{FsChangeLog};
+use crate::models::fs_change_log_model::{FsChangeLog, NewFsChangeLog};
 // use crate::schema::fs_change_log;
-use diesel::prelude::*;
-use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::SqliteConnection;
-use std::sync::Arc;
-use std::vec::Vec;
 use ::actix::prelude::*;
 use actix_web::*;
 use chrono::{NaiveDateTime, Utc};
+use diesel::prelude::*;
+use diesel::r2d2::{ConnectionManager, Pool, PooledConnection, PoolError};
+use diesel::SqliteConnection;
+// use std::sync::Arc;
+// use std::vec::Vec;
 
 // https://github.com/diesel-rs/diesel/blob/master/diesel/src/r2d2.rs
 
-lazy_static! {
-    pub static ref DB_POOL: Arc<Pool<ConnectionManager<SqliteConnection>>> = {
-        dotenv::dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-        let manager = ConnectionManager::<SqliteConnection>::new(database_url);
-        Arc::new(Pool::builder().max_size(10).build(manager).unwrap())
-    };
+// lazy_static! {
+//     pub static ref DB_POOL: Arc<Pool<ConnectionManager<SqliteConnection>>> = {
+//         dotenv::dotenv().ok();
+//         let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+//         let manager = ConnectionManager::<SqliteConnection>::new(database_url);
+//         Arc::new(Pool::builder().max_size(10).build(manager).unwrap())
+//     };
+// }
+type SqlitePool = Pool<ConnectionManager<SqliteConnection>>;
+type SqlitePooledConnection = PooledConnection<ConnectionManager<SqliteConnection>>;
+
+pub fn init_pool(database_url: &str) -> Result<SqlitePool, PoolError> {
+    let manager = ConnectionManager::<SqliteConnection>::new(database_url);
+    Pool::builder().build(manager)
 }
 
-pub struct DbExecutor(pub Pool<ConnectionManager<SqliteConnection>>);
+
+// pub fn get_db_pool() -> SqlitePool {
+//     dotenv::dotenv().ok();
+//     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+//     let manager = ConnectionManager::<SqliteConnection>::new(database_url);
+//     Pool::builder()
+//         .max_size(10)
+//         .build(manager)
+//         .expect("Failed to create pool.")
+// }
+
+pub struct DbExecutor(pub SqlitePool);
+
+impl DbExecutor {
+    pub fn get_conn(&self) -> Result<SqlitePooledConnection, Error> {
+        self.0.get().map_err(|e| error::ErrorInternalServerError(e))
+    }
+}
 
 /// This is only message that this actor can handle, but it is easy to extend
 /// number of messages.
 pub struct CreateFsChangeLog {
-    pub event_type: &'a str,
-    pub file_name: &'a str,
-    pub new_name: Option<&'a str>,
+    pub event_type: String,
+    pub file_name: String,
+    pub new_name: Option<String>,
     pub created_at: NaiveDateTime,
     pub modified_at: Option<NaiveDateTime>,
     pub notified_at: NaiveDateTime,
@@ -45,37 +69,38 @@ impl Actor for DbExecutor {
 impl Handler<CreateFsChangeLog> for DbExecutor {
     type Result = Result<FsChangeLog, Error>;
 
-    fn handle(&mut self, msg: CreateFsChangeLog, _: &mut Self::Context) -> Self::Result
-    {
-        use self::schema::users::dsl::*;
-
-        // Create insertion model
-        let uuid = format!("{}", uuid::Uuid::new_v4());
-        let new_user = models::NewUser {
-            id: &uuid,
-            name: &msg.name,
+    fn handle(&mut self, msg: CreateFsChangeLog, _: &mut Self::Context) -> Self::Result {
+        use crate::schema::fs_change_log::dsl::*;
+        let new_name_v: Option<&str> = msg.new_name.map(|v| v.as_str());
+        let new_fs_change_log = NewFsChangeLog {
+            event_type: &msg.event_type,
+            file_name: &msg.file_name,
+            new_name: new_name_v,
+            created_at: msg.created_at,
+            modified_at: msg.modified_at,
+            notified_at: Utc::now().naive_utc(),
+            size: msg.size,
         };
 
-        // normal diesel operations
-        diesel::insert_into(users)
-            .values(&new_user)
-            .execute(&self.0)
-            .expect("Error inserting person");
+        let conn: &SqliteConnection = &self.0.get().unwrap();
 
-        let mut items = users
-            .filter(id.eq(&uuid))
-            .load::<models::User>(&self.0)
-            .expect("Error loading person");
+        diesel::insert_into(fs_change_log)
+            .values(&new_fs_change_log)
+            .execute(conn)
+            .map_err(|_| error::ErrorInternalServerError("Error inserting person"))?;
+
+        let mut items = fs_change_log
+            .filter(id.eq(&id))
+            .load::<FsChangeLog>(conn)
+            .map_err(|_| error::ErrorInternalServerError("Error loading person"))?;
 
         Ok(items.pop().unwrap())
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::Utc;
 
     #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
     pub enum ParseError {

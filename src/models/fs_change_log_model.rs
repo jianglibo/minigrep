@@ -1,14 +1,16 @@
-use crate::db::DB_POOL;
-use crate::schema::fs_change_log;
-use crate::schema::fs_change_log::dsl as fs_c_log_dsl;
 use chrono::{NaiveDateTime, Utc};
 use diesel::prelude::*;
 use notify::DebouncedEvent;
 use std::convert::From;
 use std::path::PathBuf;
 use std::time::{Duration, UNIX_EPOCH};
+use diesel::SqliteConnection;
+use crate::schema::{
+    fs_change_log, fs_change_log::dsl::{fs_change_log as all_fs_change_log}
+};
 
-#[derive(Queryable)]
+
+#[derive(Queryable, Serialize)]
 pub struct FsChangeLog {
     pub id: i32,
     pub event_type: String,
@@ -33,61 +35,45 @@ pub struct NewFsChangeLog<'a> {
 }
 
 impl FsChangeLog {
-    pub fn create<'a>(
-        event_type: &'a str,
-        file_name: &'a str,
-        new_name: Option<&'a str>,
-        created_at: NaiveDateTime,
-        modified_at: Option<NaiveDateTime>,
-        size: i64,
-    ) -> usize {
-        let new_fs_change_log = NewFsChangeLog {
-            event_type,
-            file_name,
-            new_name,
-            created_at,
-            modified_at,
-            notified_at: Utc::now().naive_utc(),
-            size,
-        };
-
-        diesel::insert_into(fs_c_log_dsl::fs_change_log)
-            .values(&new_fs_change_log)
-            .execute(&DB_POOL.get().unwrap())
+    pub fn create<'a>(new_fs_cl: NewFsChangeLog, conn: &SqliteConnection) -> usize {
+        diesel::insert_into(fs_change_log::table)
+            .values(&new_fs_cl)
+            .execute(conn)
             .expect("Error saving new post")
     }
 
-    pub fn delete_all() -> usize {
-        diesel::delete(fs_c_log_dsl::fs_change_log)
-            .execute(&DB_POOL.get().unwrap())
-            .expect("Error deleting posts")
+    pub fn delete_all(conn: &SqliteConnection) -> QueryResult<usize> {
+        diesel::delete(all_fs_change_log)
+            .execute(conn)
     }
 
-    pub fn find_all(num: i64) -> Vec<FsChangeLog> {
-        fs_c_log_dsl::fs_change_log
+    pub fn all(num: i64, conn: &SqliteConnection) -> QueryResult<Vec<FsChangeLog>> {
+        all_fs_change_log
             .limit(num)
-            .load::<FsChangeLog>(&DB_POOL.get().unwrap())
-            .expect("Error loading posts")
+            .load::<FsChangeLog>(conn)
     }
 
-    pub fn find_by_id(id: i32) -> Vec<FsChangeLog> {
-        fs_c_log_dsl::fs_change_log
-            .filter(id.eq(&id))
-            .load::<FsChangeLog>(&DB_POOL.get().unwrap())
-            .expect("Error loading posts")
+    pub fn find_by_id(id: i32, conn: &SqliteConnection) -> QueryResult<Option<FsChangeLog>> {
+        all_fs_change_log
+            .filter(fs_change_log::id.eq(&id))
+            .load::<FsChangeLog>(conn).map(|items| if items.len() > 0 {
+                Some(items[0])
+            } else {
+                None
+            })
     }
 }
 
 impl<'a> From<&'a DebouncedEvent> for NewFsChangeLog<'a> {
     fn from(de: &'a DebouncedEvent) -> Self {
-        let bd = |src_pbuf: Option<&'a PathBuf>,
-                  dst_pbuf: Option<&'a PathBuf>,
+        let bd = |src_path_buf: Option<&'a PathBuf>,
+                  dst_path_buf: Option<&'a PathBuf>,
                   en: &'a str|
          -> NewFsChangeLog<'a> {
-            let ppbuf = dst_pbuf.or(src_pbuf);
+            let path_buf_opt = dst_path_buf.or(src_path_buf);
 
-            let fs_meta = match ppbuf {
-                Some(pbuf) => std::fs::metadata(pbuf).ok(),
+            let fs_meta = match path_buf_opt {
+                Some(path_buf) => std::fs::metadata(path_buf).ok(),
                 None => None,
             };
 
@@ -108,15 +94,15 @@ impl<'a> From<&'a DebouncedEvent> for NewFsChangeLog<'a> {
 
             NewFsChangeLog {
                 file_name: {
-                    match src_pbuf {
-                        Some(pbuf) => pbuf.to_str().unwrap_or(""),
+                    match src_path_buf {
+                        Some(path_buf) => path_buf.to_str().unwrap_or(""),
                         None => "",
                     }
                 },
                 event_type: en,
                 new_name: {
-                    match dst_pbuf {
-                        Some(pbuf) => Some(pbuf.to_str().unwrap_or("")),
+                    match dst_path_buf {
+                        Some(path_buf) => Some(path_buf.to_str().unwrap_or("")),
                         None => None,
                     }
                 },
@@ -127,12 +113,12 @@ impl<'a> From<&'a DebouncedEvent> for NewFsChangeLog<'a> {
             }
         };
         match de {
-            DebouncedEvent::NoticeWrite(pbuf) => bd(Some(&pbuf), None, "NoticeWrite"),
-            DebouncedEvent::NoticeRemove(pbuf) => bd(Some(&pbuf), None, "NoticeRemove"),
-            DebouncedEvent::Create(pbuf) => bd(Some(&pbuf), None, "Create"),
-            DebouncedEvent::Write(pbuf) => bd(Some(&pbuf), None, "Write"),
-            DebouncedEvent::Chmod(pbuf) => bd(Some(&pbuf), None, "Chmod"),
-            DebouncedEvent::Remove(pbuf) => bd(Some(&pbuf), None, "Remove"),
+            DebouncedEvent::NoticeWrite(path_buf) => bd(Some(&path_buf), None, "NoticeWrite"),
+            DebouncedEvent::NoticeRemove(path_buf) => bd(Some(&path_buf), None, "NoticeRemove"),
+            DebouncedEvent::Create(path_buf) => bd(Some(&path_buf), None, "Create"),
+            DebouncedEvent::Write(path_buf) => bd(Some(&path_buf), None, "Write"),
+            DebouncedEvent::Chmod(path_buf) => bd(Some(&path_buf), None, "Chmod"),
+            DebouncedEvent::Remove(path_buf) => bd(Some(&path_buf), None, "Remove"),
             DebouncedEvent::Rename(src, dst) => bd(Some(&src), Some(&dst), "Rename"),
             DebouncedEvent::Rescan => bd(None, None, "Rescan"),
             _ => bd(None, None, "Other"),
@@ -143,23 +129,27 @@ impl<'a> From<&'a DebouncedEvent> for NewFsChangeLog<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fixture_util::{get_connect};
     use chrono::Utc;
-
     #[test]
     fn test_list_fcl() {
-        FsChangeLog::delete_all();
-        assert_eq!(FsChangeLog::find_all(5).len(), 0);
+        let conn = &get_connect();
+        FsChangeLog::delete_all(conn);
+        assert_eq!(FsChangeLog::all(5, conn).unwrap().len(), 0);
 
-        let num: usize = FsChangeLog::create(
-            "NoticeRemove",
-            r"c:\abc.txt",
-            None,
-            Utc::now().naive_utc(),
-            None,
-            0,
-        );
+        let nfs = NewFsChangeLog{
+            event_type: "NoticeRemove",
+            file_name: r"c:\abc.txt",
+            new_name: None,
+            created_at: Utc::now().naive_utc(),
+            modified_at: None,
+            notified_at: Utc::now().naive_utc(),
+            size: 0,
+        };
+
+        let num: usize = FsChangeLog::create(nfs, conn);
         assert_eq!(num, 1);
-        let items: Vec<FsChangeLog> = FsChangeLog::find_all(5);
+        let items: Vec<FsChangeLog> = FsChangeLog::all(5, conn).unwrap();
         assert_eq!(items.len(), 1);
         assert_eq!(&items[0].file_name, r"c:\abc.txt");
     }

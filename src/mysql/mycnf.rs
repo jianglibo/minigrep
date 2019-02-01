@@ -1,7 +1,7 @@
 use regex::Regex;
 use std::convert::AsRef;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use std::string::String;
 use std::vec::Vec;
@@ -46,7 +46,7 @@ impl MyCnfFile {
         let lines = lines_result.unwrap();
 
         lazy_static! {
-            static ref RE: Regex = Regex::new(r"^\[(?P<blockname>[^\[\]]+)\]$").unwrap();
+            static ref RE: Regex = Regex::new(r"^\[(?P<block_name>[^\[\]]+)\]$").unwrap();
         }
         let mut mycnf = MyCnfFile {
             pre_lines: vec![],
@@ -56,12 +56,12 @@ impl MyCnfFile {
         let mut cur_block_name: Option<String> = None;
 
         for line in lines {
-            let trimed_line = line.trim();
-            let caps_op = RE.captures(trimed_line);
+            let trimmed_line = line.trim();
+            let caps_op = RE.captures(trimmed_line);
             match caps_op {
                 Some(caps) => {
                     // is block name line, a new block name line.
-                    let bn = &caps["blockname"];
+                    let bn = &caps["block_name"];
                     if let Some(bn) = cur_block_name {
                         mycnf.blocks.push(MycnfBlock {
                             name: bn,
@@ -74,9 +74,9 @@ impl MyCnfFile {
                 None => {
                     // is block content line.
                     if cur_block_name.is_some() {
-                        block_lines.push(trimed_line.to_owned());
+                        block_lines.push(trimmed_line.to_owned());
                     } else {
-                        mycnf.pre_lines.push(trimed_line.to_owned());
+                        mycnf.pre_lines.push(trimmed_line.to_owned());
                     }
                 }
             }
@@ -192,9 +192,8 @@ fn get_lines<'a, T: AsRef<Path>>(file: T) -> std::io::Result<Vec<String>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::fxiture_util::{get_fixture_file, print_stars};
-    use regex::Regex;
-    use yaml_rust::{YamlLoader, YamlEmitter};
+    use crate::fixture_util::{get_fixture_file};
+    use yaml_rust::{YamlLoader};
     use std::fs::File;
     use std::io::Read;
 
@@ -224,8 +223,8 @@ mod tests {
 
         let trim_str = |s: &'a str| -> &'a str { s.trim() };
 
-        let s_trimed = trim_str(" abc ");
-        assert_eq!(s_trimed, "abc");
+        let s_trimmed = trim_str(" abc ");
+        assert_eq!(s_trimmed, "abc");
 
         let kv = mycnf.get_config("mysqld", "log-error1");
         assert!(kv.is_none());
@@ -255,9 +254,9 @@ mod tests {
             println!("{}", "yes");
         }
         let mut counter = 0;
-        let result = for i in (1..3) {};
+        let result = for i in 1..3 {};
         assert_eq!((), result);
-        let result = 'abreadkablefor: for i in (1..3) {
+        let result = 'abreadkablefor: for i in 1..3 {
             break 'abreadkablefor;
         };
         assert_eq!((), result);
@@ -269,8 +268,8 @@ mod tests {
         };
         assert_eq!(result, 20);
         let s = "#  abc=55 ";
-        let s_trimed = s.trim_start_matches('#').trim();
-        let ss: Vec<&str> = s_trimed.splitn(2, '=').collect();
+        let s_trimmed = s.trim_start_matches('#').trim();
+        let ss: Vec<&str> = s_trimmed.splitn(2, '=').collect();
         assert_eq!(ss[0], "abc");
         assert_eq!(ss[1], "55");
 
@@ -278,13 +277,13 @@ mod tests {
         assert!("][".contains(']'));
         assert!("][".contains('['));
         let v: Vec<_> = s.trim().match_indices(|c| "[]".contains(c)).collect();
-        let s_trimed = s.trim();
-        assert!(s_trimed.starts_with('['));
-        let content = &(s_trimed[1..s_trimed.len() - 1]);
+        let s_trimmed = s.trim();
+        assert!(s_trimmed.starts_with('['));
+        let content = &(s_trimmed[1..s_trimmed.len() - 1]);
         assert_eq!(content, "mysqld");
 
         let x: &[_] = &['[', ']'];
-        let ss = s_trimed.trim_matches(x);
+        let ss = s_trimmed.trim_matches(x);
         assert_eq!(ss, "mysqld");
         assert_eq!(v, [(0, "["), (7, "]")]);
     }
@@ -312,8 +311,8 @@ mod tests {
         let node = &(doc["taskcmd"]);
         println!("{:#?}", node);
 
-        // let idhash = doc["Software"]["InstallDetect"].as_hash().unwrap();
-        // assert_eq!(idhash.get(&"unexpect").unwrap().as_str().unwrap(), "not-found");
+        // let id_hash = doc["Software"]["InstallDetect"].as_hash().unwrap();
+        // assert_eq!(id_hash.get(&"unexpected").unwrap().as_str().unwrap(), "not-found");
 
         let node = &(doc["Software"]["InstallDetect"]);
         
