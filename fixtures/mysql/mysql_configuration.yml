@@ -12,7 +12,7 @@ MysqlAdminBin: "mysqladmin"
 MysqlLogFile: "/var/log/mysqld.log"
 LocalDir: "e:/backups/mysql"
 LogDir: "e:/backups/logs"
-taskcmd:
+task_cmd:
   flushlog: "%s -Action FlushLogs -ConfigFile %s -LogResult -Json"
   dump: "%s -Action Dump -ConfigFile %s -LogResult -Json"
   backuplocal: "%s -Action BackupLocal -ConfigFile %s -LogResult -Json"

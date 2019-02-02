@@ -16,7 +16,7 @@ pub struct MysqlServerSideConfiguration {
     MysqlLogFile: String,
     LocalDir: String,
     LogDir: String,
-    taskcmd: BTreeMap<String, String>,
+    task_cmd: BTreeMap<String, String>,
     crons: BTreeMap<String, String>,
     DumpPrunePattern: String,
     Softwares: Vec<BTreeMap<String, String>>,

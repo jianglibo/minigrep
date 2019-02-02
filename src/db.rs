@@ -2,7 +2,6 @@ use crate::models::fs_change_log_model::{FsChangeLog, NewFsChangeLog};
 // use crate::schema::fs_change_log;
 use ::actix::prelude::*;
 use actix_web::*;
-use chrono::{NaiveDateTime, Utc};
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection, PoolError};
 use diesel::SqliteConnection;
@@ -27,7 +26,6 @@ pub fn init_pool(database_url: &str) -> Result<SqlitePool, PoolError> {
     Pool::builder().build(manager)
 }
 
-
 // pub fn get_db_pool() -> SqlitePool {
 //     dotenv::dotenv().ok();
 //     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -48,17 +46,17 @@ impl DbExecutor {
 
 /// This is only message that this actor can handle, but it is easy to extend
 /// number of messages.
-pub struct CreateFsChangeLog {
-    pub event_type: String,
-    pub file_name: String,
-    pub new_name: Option<String>,
-    pub created_at: NaiveDateTime,
-    pub modified_at: Option<NaiveDateTime>,
-    pub notified_at: NaiveDateTime,
-    pub size: i64,
-}
+// pub struct CreateFsChangeLog<'a> {
+//     pub event_type: &'a str,
+//     pub file_name: &'a str,
+//     pub new_name: Option<&'a str>,
+//     pub created_at: NaiveDateTime,
+//     pub modified_at: Option<NaiveDateTime>,
+//     pub notified_at: NaiveDateTime,
+//     pub size: i64,
+// }
 
-impl Message for CreateFsChangeLog {
+impl Message for NewFsChangeLog {
     type Result = Result<FsChangeLog, Error>;
 }
 
@@ -66,26 +64,29 @@ impl Actor for DbExecutor {
     type Context = SyncContext<Self>;
 }
 
-impl Handler<CreateFsChangeLog> for DbExecutor {
+impl Handler<NewFsChangeLog> for DbExecutor {
     type Result = Result<FsChangeLog, Error>;
 
-    fn handle(&mut self, msg: CreateFsChangeLog, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: NewFsChangeLog, _: &mut Self::Context) -> Self::Result {
         use crate::schema::fs_change_log::dsl::*;
-        let new_name_v: Option<&str> = msg.new_name.map(|v| v.as_str());
-        let new_fs_change_log = NewFsChangeLog {
-            event_type: &msg.event_type,
-            file_name: &msg.file_name,
-            new_name: new_name_v,
-            created_at: msg.created_at,
-            modified_at: msg.modified_at,
-            notified_at: Utc::now().naive_utc(),
-            size: msg.size,
-        };
+        // let new_fs_change_log = NewFsChangeLog {
+        //     ..msg
+        // };
+        // let new_name_v: Option<&str> = msg.new_name.map(|v| v.as_str());
+        // let new_fs_change_log = NewFsChangeLog {
+        //     event_type: &msg.event_type,
+        //     file_name: &msg.file_name,
+        //     new_name: new_name_v,
+        //     created_at: msg.created_at,
+        //     modified_at: msg.modified_at,
+        //     notified_at: Utc::now().naive_utc(),
+        //     size: msg.size,
+        // };
 
         let conn: &SqliteConnection = &self.0.get().unwrap();
 
         diesel::insert_into(fs_change_log)
-            .values(&new_fs_change_log)
+            .values(&msg)
             .execute(conn)
             .map_err(|_| error::ErrorInternalServerError("Error inserting person"))?;
 

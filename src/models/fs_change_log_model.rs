@@ -22,12 +22,12 @@ pub struct FsChangeLog {
     pub size: i64,
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, Deserialize, Debug, Serialize)]
 #[table_name = "fs_change_log"]
-pub struct NewFsChangeLog<'a> {
-    pub event_type: &'a str,
-    pub file_name: &'a str,
-    pub new_name: Option<&'a str>,
+pub struct NewFsChangeLog {
+    pub event_type: String,
+    pub file_name: String,
+    pub new_name: Option<String>,
     pub created_at: NaiveDateTime,
     pub modified_at: Option<NaiveDateTime>,
     pub notified_at: NaiveDateTime,
@@ -53,23 +53,23 @@ impl FsChangeLog {
             .load::<FsChangeLog>(conn)
     }
 
-    pub fn find_by_id(id: i32, conn: &SqliteConnection) -> QueryResult<Option<FsChangeLog>> {
+    pub fn find_by_id(id: i32, conn: &SqliteConnection) -> QueryResult<Option<Vec<FsChangeLog>>> {
         all_fs_change_log
             .filter(fs_change_log::id.eq(&id))
             .load::<FsChangeLog>(conn).map(|items| if items.len() > 0 {
-                Some(items[0])
+                Some(items)
             } else {
                 None
             })
     }
 }
 
-impl<'a> From<&'a DebouncedEvent> for NewFsChangeLog<'a> {
-    fn from(de: &'a DebouncedEvent) -> Self {
-        let bd = |src_path_buf: Option<&'a PathBuf>,
-                  dst_path_buf: Option<&'a PathBuf>,
-                  en: &'a str|
-         -> NewFsChangeLog<'a> {
+impl From<&DebouncedEvent> for NewFsChangeLog {
+    fn from(de: &DebouncedEvent) -> Self {
+        let bd = |src_path_buf: Option<&PathBuf>,
+                  dst_path_buf: Option<&PathBuf>,
+                  event_type_str: &str|
+         -> NewFsChangeLog {
             let path_buf_opt = dst_path_buf.or(src_path_buf);
 
             let fs_meta = match path_buf_opt {
@@ -95,14 +95,14 @@ impl<'a> From<&'a DebouncedEvent> for NewFsChangeLog<'a> {
             NewFsChangeLog {
                 file_name: {
                     match src_path_buf {
-                        Some(path_buf) => path_buf.to_str().unwrap_or(""),
-                        None => "",
+                        Some(path_buf) => path_buf.to_str().unwrap_or("").to_owned(),
+                        None => String::from("")
                     }
                 },
-                event_type: en,
+                event_type: event_type_str.to_owned(),
                 new_name: {
                     match dst_path_buf {
-                        Some(path_buf) => Some(path_buf.to_str().unwrap_or("")),
+                        Some(path_buf) => Some(path_buf.to_str().unwrap_or("").to_owned()),
                         None => None,
                     }
                 },
@@ -138,8 +138,8 @@ mod tests {
         assert_eq!(FsChangeLog::all(5, conn).unwrap().len(), 0);
 
         let nfs = NewFsChangeLog{
-            event_type: "NoticeRemove",
-            file_name: r"c:\abc.txt",
+            event_type: String::from("NoticeRemove"),
+            file_name: String::from(r"c:\abc.txt"),
             new_name: None,
             created_at: Utc::now().naive_utc(),
             modified_at: None,

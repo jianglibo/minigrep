@@ -14,7 +14,7 @@ BorgPrune: '%s prune -v --list --keep-daily=7 --keep-weekly=4 %s'
 BorgList: '%s list --json %s'
 BorgRepoPath: /opt/repo
 LocalDir: e:/backups/borg
-taskcmd:
+task_cmd:
   archive: '%s -Action ArchiveAndDownload -ConfigFile %s -LogResult -Json'
   prune: '%s -Action PruneAndDownload -ConfigFile %s -LogResult -Json'
   backuplocal: '%s -Action BackupLocal -ConfigFile %s -LogResult -Json'

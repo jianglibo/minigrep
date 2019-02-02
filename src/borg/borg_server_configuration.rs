@@ -19,7 +19,7 @@ pub struct BorgServerSideConfiguration {
     pub BorgList: String,
     pub BorgRepoPath: String,
     pub LocalDir: String,
-    pub taskcmd: BTreeMap<String, String>,
+    pub task_cmd: BTreeMap<String, String>,
     pub crons: BTreeMap<String, String>,
     pub BorgPrunePattern: String,
     pub Softwares: Vec<SoftwareDescription>,

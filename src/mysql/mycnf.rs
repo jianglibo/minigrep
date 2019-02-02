@@ -306,9 +306,9 @@ mod tests {
         assert_eq!(doc["AppName"].as_str().unwrap(), "mysql");
         assert_eq!(doc["MysqlVersion"].as_str().unwrap(), "57");
         assert_eq!(doc["MysqlVersion"].as_str().unwrap().parse::<i32>().unwrap(), 57);
-        assert_eq!(doc["taskcmd"].as_hash().unwrap().len(), 3);
+        assert_eq!(doc["task_cmd"].as_hash().unwrap().len(), 3);
 
-        let node = &(doc["taskcmd"]);
+        let node = &(doc["task_cmd"]);
         println!("{:#?}", node);
 
         // let id_hash = doc["Software"]["InstallDetect"].as_hash().unwrap();

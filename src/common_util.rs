@@ -1,6 +1,6 @@
 
-const LINE_START: &str = "for-easyinstaller-client-use-start";
-const LINE_END: &str = "for-easyinstaller-client-use-end";
+const LINE_START: &str = "for-easy-installer-client-use-start";
+const LINE_END: &str = "for-easy-installer-client-use-end";
 
 pub fn send_string_to_client(str_content: &str) {
     println!("{}", LINE_START);
