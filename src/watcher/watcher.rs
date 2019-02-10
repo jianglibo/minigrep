@@ -2,6 +2,11 @@ use notify::{RecommendedWatcher, Watcher, RecursiveMode, DebouncedEvent};
 use std::sync::mpsc::channel;
 use std::time::Duration;
 
+
+struct DirWatcher {
+    app_state: AppState,
+}
+
 fn watch(watch_target: &str, how_much_times: u8) -> notify::Result<()> {
     // Create a channel to receive the events.
     let (tx, rx) = channel();

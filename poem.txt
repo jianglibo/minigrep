@@ -40,4 +40,39 @@ vscode settings:
     "rust.rustup": {
         "toolchain": "nightly-x86_64-pc-windows-msvc"
     },
-    "rust.mode": "rls
+    "rust.mode": "rls"
+
+
+https://doc.rust-lang.org/cargo/reference/source-replacement.html?highlight=mirror#source-replacement
+
+# The `source` table is where all keys related to source-replacement
+# are stored.
+[source]
+
+# Under the `source` table are a number of other tables whose keys are a
+# name for the relevant source. For example this section defines a new
+# source, called `my-awesome-source`, which comes from a directory
+# located at `vendor` relative to the directory containing this `.cargo/config`
+# file
+[source.my-awesome-source]
+directory = "vendor"
+
+# Git sources can optionally specify a branch/tag/rev as well
+git = "https://example.com/path/to/repo"
+# branch = "master"
+# tag = "v1.0.1"
+# rev = "313f44e8"
+
+# The crates.io default source for crates is available under the name
+# "crates-io", and here we use the `replace-with` key to indicate that it's
+# replaced with our source above.
+[source.crates-io]
+replace-with = "my-awesome-source"
+
+put following line to ~\.cargo\config.
+[source.crates-io]
+replace-with = 'ustc'
+[source.ustc]
+registry = "https://mirrors.ustc.edu.cn/crates.io-index"
+[source.sjtug]
+registry = "git://mirrors.sjtug.sjtu.edu.cn/crates.io/"
