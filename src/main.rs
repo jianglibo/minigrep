@@ -24,6 +24,7 @@ mod test_diesel;
 mod test_fun;
 mod test_string;
 mod watcher;
+mod app_state;
 
 #[macro_use]
 extern crate diesel;
@@ -35,6 +36,7 @@ extern crate futures;
 extern crate serde;
 extern crate serde_json;
 extern crate uuid;
+
 // extern crate json;
 
 use actix::prelude::*;
@@ -47,12 +49,11 @@ use bytes::BytesMut;
 use futures::{future, Future, Stream};
 
 use db::DbExecutor;
+use app_state::AppState;
 use models::fs_change_log_model::NewFsChangeLog;
+use watcher::watcher::watch;
 
-/// State with DbExecutor address
-struct AppState {
-    db: Addr<DbExecutor>,
-}
+
 
 /// Async request handler
 // fn add(
@@ -113,10 +114,11 @@ fn index_add(
                 // Send to the db for create
                 match r_fs_change_log_item {
                     Ok(fs_change_log_item) => {
-                        let res = state.db.send(fs_change_log_item).from_err().and_then(|res| match res {
-                            Ok(fs_change_log_item) => Ok(HttpResponse::Ok().json(fs_change_log_item)),
-                            Err(_) => Ok(HttpResponse::InternalServerError().into()),
-                        });
+                        let res = state.db.send(fs_change_log_item).from_err()
+                            .and_then(|res| match res {
+                                Ok(fs_change_log_item) => Ok(HttpResponse::Ok().json(fs_change_log_item)),
+                                Err(_) => Ok(HttpResponse::InternalServerError().into()),
+                            });
 
                         Box::new(res)
                     }
@@ -154,6 +156,8 @@ fn main() {
     let pool = db::init_pool(&database_url).unwrap();
 
     let addr = SyncArbiter::start(3, move || DbExecutor(pool.clone()));
+
+    watch("abc", AppState { db: addr.clone()}).unwrap();
 
     // Start http server
     server::new(move || {
