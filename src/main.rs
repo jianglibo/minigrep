@@ -42,7 +42,7 @@ extern crate uuid;
 
 use actix::prelude::*;
 use actix_web::{
-    error, http, middleware, server, App, Error, HttpMessage, HttpRequest, HttpResponse, Json,
+    http, middleware, server, App, Error, HttpMessage, HttpRequest, HttpResponse, Json,
     State,
 };
 use bytes::BytesMut;
@@ -53,6 +53,7 @@ use db::DbExecutor;
 use app_state::AppState;
 use models::fs_change_log_model::NewFsChangeLog;
 use watcher::watcher::DirWatcher;
+use watcher::watcher_dispatch::WatcherDispatch;
 
 
 
@@ -95,7 +96,7 @@ fn index_add(
         .fold(BytesMut::new(), move |mut body, chunk| {
             // limit max size of in-memory payload
             if (body.len() + chunk.len()) > MAX_SIZE {
-                Err(error::ErrorBadRequest("overflow"))
+                Err(::actix_web::error::ErrorBadRequest("overflow"))
             } else {
                 body.extend_from_slice(&chunk);
                 Ok(body)
@@ -123,7 +124,7 @@ fn index_add(
 
                         Box::new(res)
                     }
-                    Err(_) => Box::new(future::err(error::ErrorBadRequest("Json Decode Failed"))),
+                    Err(_) => Box::new(future::err(::actix_web::error::ErrorBadRequest("Json Decode Failed"))),
                 }
             },
         )
@@ -156,16 +157,26 @@ fn main() {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let pool = db::init_pool(&database_url).unwrap();
 
-    
+    let wd = std::env::var("WATCH_DIR").expect("WATCH_DIR must be set.");
 
-    let addr = SyncArbiter::start(3, move || DbExecutor(pool.clone()));
+    let db_addr = SyncArbiter::start(3, move || DbExecutor(pool.clone()));
+    let db_addr1 = db_addr.clone();
+
+    let wd_addr = Arbiter::start(move |ctx| {
+        // use futures::stream::once;
+        let dw = DirWatcher::new(&wd);
+        WatcherDispatch::add_stream(dw, ctx);
+        WatcherDispatch {
+            app_state: AppState { db: db_addr1 }
+        }
+    });
 
 
-    watch("abc", AppState { db: addr.clone()}).unwrap();
+    // watch("abc", AppState { db: addr.clone()}).unwrap();
 
     // Start http server
     server::new(move || {
-        App::with_state(AppState { db: addr.clone() })
+        App::with_state(AppState { db: db_addr.clone() })
             // enable logger
             .middleware(middleware::Logger::default())
             // This can be called with:

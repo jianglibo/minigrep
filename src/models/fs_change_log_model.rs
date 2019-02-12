@@ -37,7 +37,7 @@ pub struct NewFsChangeLog {
 }
 
 impl Message for NewFsChangeLog {
-    type Result = Result<FsChangeLog, WatchError>;
+    type Result = Result<(), WatchError>;
 }
 
 impl FsChangeLog {

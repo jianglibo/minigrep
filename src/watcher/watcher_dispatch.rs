@@ -1,17 +1,13 @@
 use crate::app_state::AppState;
 use crate::models::fs_change_log_model::NewFsChangeLog;
+use crate::error::WatchError;
 use actix::prelude::*;
-use notify::{DebouncedEvent, RecommendedWatcher, RecursiveMode, Watcher};
-use std::sync::mpsc::channel;
-use std::thread;
-use std::time::Duration;
-use futures::{Stream, Poll, Async, Future};
 
 /**
  * This is an Actor which consume dirwatcher stream.
  */
 pub struct WatcherDispatch {
-    app_state: AppState,
+    pub app_state: AppState,
 }
 
 impl Actor for WatcherDispatch {
@@ -19,9 +15,21 @@ impl Actor for WatcherDispatch {
 }
 
 impl  Handler<NewFsChangeLog> for WatcherDispatch {
+    type Result = Result<(), WatchError>;
 
+    fn handle(&mut self, msg: NewFsChangeLog, _: &mut Self::Context) -> Self::Result {
+        match self.app_state.db.try_send(msg) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(WatchError::Unknown),
+        }
+    }
 }
 
 impl StreamHandler<NewFsChangeLog, ()> for WatcherDispatch {
-
+    fn handle(&mut self, item: NewFsChangeLog, _: &mut Context<WatcherDispatch>) {
+        match self.app_state.db.try_send(item) {
+            Ok(_) => (),
+            Err(_) => (),
+        }
+    }
 }

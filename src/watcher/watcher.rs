@@ -1,19 +1,17 @@
 use crate::app_state::AppState;
 use crate::models::fs_change_log_model::NewFsChangeLog;
-use actix::prelude::*;
 use notify::{DebouncedEvent, RecommendedWatcher, RecursiveMode, Watcher};
 use std::sync::mpsc::channel;
-use std::thread;
 use std::time::Duration;
-use futures::{Stream, Poll, Async, Future};
+use futures::{Stream, Poll, Async};
 
 pub struct DirWatcher {
-    app_state: AppState,
-    rx: std::sync::mpsc::Receiver<notify::DebouncedEvent>,
+    // app_state: AppState,
+    rx: std::sync::mpsc::Receiver<DebouncedEvent>,
 }
 
 impl DirWatcher {
-    fn new(watch_target: &str, app_state: AppState) -> DirWatcher {
+    pub fn new(watch_target: &str/*, app_state: AppState*/) -> DirWatcher {
             let (tx, rx) = channel();
 
     // Automatically select the best implementation for your platform.
@@ -24,7 +22,7 @@ impl DirWatcher {
     // below will be monitored for changes.
     watcher.watch(watch_target, RecursiveMode::Recursive).unwrap();
         DirWatcher {
-            app_state,
+            // app_state,
             rx,
         }
     }
@@ -131,7 +129,7 @@ impl Stream for DirWatcher {
 mod tests {
     use super::*;
     use crate::db;
-    use crate::fixture_util::{get_connect, run_system};
+    use crate::fixture_util::{get_connect};
     use crate::models::fs_change_log_model::FsChangeLog;
     use chrono::Utc;
     use std::fs::File;
@@ -140,6 +138,7 @@ mod tests {
     use std::thread::sleep;
     use std::time::Duration;
     use tempfile::tempdir;
+    use ::actix::{System, SyncArbiter};
 
     // #[test]
     // fn test_w() {

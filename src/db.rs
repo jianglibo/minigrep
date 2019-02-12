@@ -43,7 +43,7 @@ impl Actor for DbExecutor {
 
 impl Handler<StopMe> for DbExecutor {
     type Result = ();
-    fn handle(&mut self, msg: StopMe, _:&mut Self::Context) -> Self::Result {
+    fn handle(&mut self, _: StopMe, _:&mut Self::Context) -> Self::Result {
         System::current().stop();
         ()
     }
@@ -51,7 +51,7 @@ impl Handler<StopMe> for DbExecutor {
 
 impl Handler<NewFsChangeLog> for DbExecutor {
     // type Result = Result<FsChangeLog, Error>;
-    type Result = Result<FsChangeLog, WatchError>;
+    type Result = Result<(), WatchError>;
 
     fn handle(&mut self, msg: NewFsChangeLog, _: &mut Self::Context) -> Self::Result {
         use crate::schema::fs_change_log::dsl::*;
@@ -63,11 +63,11 @@ impl Handler<NewFsChangeLog> for DbExecutor {
             .execute(conn)
             .map_err(|_| WatchError::Unknown)?;
 
-        let mut items = fs_change_log
-            .filter(id.eq(&id))
-            .load::<FsChangeLog>(conn)
-            .map_err(|_| WatchError::Unknown)?;
-        Ok(items.pop().unwrap())
+        // let items = fs_change_log
+        //     .filter(id.eq(&id))
+        //     .load::<FsChangeLog>(conn)
+        //     .map_err(|_| WatchError::Unknown)?;
+        Ok(())
     }
 }
 

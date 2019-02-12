@@ -4,6 +4,7 @@ use std::path::Path;
 use crate::borg::borg_server_configuration::BorgServerSideConfiguration;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct BorgInvoker {
     configuration: BorgServerSideConfiguration,
 }
