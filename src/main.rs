@@ -25,6 +25,7 @@ mod test_fun;
 mod test_string;
 mod watcher;
 mod app_state;
+mod error;
 
 #[macro_use]
 extern crate diesel;
@@ -51,7 +52,7 @@ use futures::{future, Future, Stream};
 use db::DbExecutor;
 use app_state::AppState;
 use models::fs_change_log_model::NewFsChangeLog;
-use watcher::watcher::watch;
+use watcher::watcher::DirWatcher;
 
 
 
@@ -155,7 +156,10 @@ fn main() {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let pool = db::init_pool(&database_url).unwrap();
 
+    
+
     let addr = SyncArbiter::start(3, move || DbExecutor(pool.clone()));
+
 
     watch("abc", AppState { db: addr.clone()}).unwrap();
 

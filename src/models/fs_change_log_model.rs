@@ -8,6 +8,8 @@ use diesel::SqliteConnection;
 use crate::schema::{
     fs_change_log, fs_change_log::dsl::{fs_change_log as all_fs_change_log}
 };
+use ::actix::prelude::Message;
+use crate::error::WatchError;
 
 
 #[derive(Queryable, Serialize)]
@@ -32,6 +34,10 @@ pub struct NewFsChangeLog {
     pub modified_at: Option<NaiveDateTime>,
     pub notified_at: NaiveDateTime,
     pub size: i64,
+}
+
+impl Message for NewFsChangeLog {
+    type Result = Result<FsChangeLog, WatchError>;
 }
 
 impl FsChangeLog {

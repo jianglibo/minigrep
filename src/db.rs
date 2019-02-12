@@ -5,19 +5,12 @@ use ::actix_web::*;
 use ::diesel::prelude::*;
 use ::diesel::r2d2::{ConnectionManager, Pool, PooledConnection, PoolError};
 use ::diesel::SqliteConnection;
+use crate::error::WatchError;
 // use std::sync::Arc;
 // use std::vec::Vec;
 
 // https://github.com/diesel-rs/diesel/blob/master/diesel/src/r2d2.rs
 
-// lazy_static! {
-//     pub static ref DB_POOL: Arc<Pool<ConnectionManager<SqliteConnection>>> = {
-//         dotenv::dotenv().ok();
-//         let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-//         let manager = ConnectionManager::<SqliteConnection>::new(database_url);
-//         Arc::new(Pool::builder().max_size(10).build(manager).unwrap())
-//     };
-// }
 type SqlitePool = Pool<ConnectionManager<SqliteConnection>>;
 type SqlitePooledConnection = PooledConnection<ConnectionManager<SqliteConnection>>;
 
@@ -25,16 +18,6 @@ pub fn init_pool(database_url: &str) -> Result<SqlitePool, PoolError> {
     let manager = ConnectionManager::<SqliteConnection>::new(database_url);
     Pool::builder().build(manager)
 }
-
-// pub fn get_db_pool() -> SqlitePool {
-//     dotenv::dotenv().ok();
-//     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-//     let manager = ConnectionManager::<SqliteConnection>::new(database_url);
-//     Pool::builder()
-//         .max_size(10)
-//         .build(manager)
-//         .expect("Failed to create pool.")
-// }
 
 pub struct DbExecutor(pub SqlitePool);
 
@@ -44,62 +27,47 @@ impl DbExecutor {
     }
 }
 
-/// This is only message that this actor can handle, but it is easy to extend
-/// number of messages.
-// pub struct CreateFsChangeLog<'a> {
-//     pub event_type: &'a str,
-//     pub file_name: &'a str,
-//     pub new_name: Option<&'a str>,
-//     pub created_at: NaiveDateTime,
-//     pub modified_at: Option<NaiveDateTime>,
-//     pub notified_at: NaiveDateTime,
-//     pub size: i64,
-// }
+pub struct StopMe();
 
-impl Message for NewFsChangeLog {
-    type Result = Result<FsChangeLog, Error>;
+impl Message for StopMe {
+    type Result = ();
 }
+
+// impl Message for NewFsChangeLog {
+//     type Result = Result<FsChangeLog, Error>;
+// }
 
 impl Actor for DbExecutor {
     type Context = SyncContext<Self>;
 }
 
+impl Handler<StopMe> for DbExecutor {
+    type Result = ();
+    fn handle(&mut self, msg: StopMe, _:&mut Self::Context) -> Self::Result {
+        System::current().stop();
+        ()
+    }
+}
+
 impl Handler<NewFsChangeLog> for DbExecutor {
-    type Result = Result<FsChangeLog, Error>;
+    // type Result = Result<FsChangeLog, Error>;
+    type Result = Result<FsChangeLog, WatchError>;
 
     fn handle(&mut self, msg: NewFsChangeLog, _: &mut Self::Context) -> Self::Result {
         use crate::schema::fs_change_log::dsl::*;
-        // let new_fs_change_log = NewFsChangeLog {
-        //     ..msg
-        // };
-        // let new_name_v: Option<&str> = msg.new_name.map(|v| v.as_str());
-        // let new_fs_change_log = NewFsChangeLog {
-        //     event_type: &msg.event_type,
-        //     file_name: &msg.file_name,
-        //     new_name: new_name_v,
-        //     created_at: msg.created_at,
-        //     modified_at: msg.modified_at,
-        //     notified_at: Utc::now().naive_utc(),
-        //     size: msg.size,
-        // };
 
         let conn: &SqliteConnection = &self.0.get().unwrap();
 
         diesel::insert_into(fs_change_log)
             .values(&msg)
             .execute(conn)
-            .map_err(|_| error::ErrorInternalServerError("Error inserting person"))?;
+            .map_err(|_| WatchError::Unknown)?;
 
         let mut items = fs_change_log
             .filter(id.eq(&id))
             .load::<FsChangeLog>(conn)
-            .map_err(|_| error::ErrorInternalServerError("Error loading person"))?;
-        
-        let item = items.pop().unwrap();
-        if item.size == -1 {
-            System::current().stop();
-        }
-        Ok(item)
+            .map_err(|_| WatchError::Unknown)?;
+        Ok(items.pop().unwrap())
     }
 }
 
@@ -177,3 +145,13 @@ mod tests {
         assert!(an.is_ok());
     }
 }
+
+// pub fn get_db_pool() -> SqlitePool {
+//     dotenv::dotenv().ok();
+//     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+//     let manager = ConnectionManager::<SqliteConnection>::new(database_url);
+//     Pool::builder()
+//         .max_size(10)
+//         .build(manager)
+//         .expect("Failed to create pool.")
+// }
