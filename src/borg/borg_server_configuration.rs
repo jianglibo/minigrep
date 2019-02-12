@@ -3,28 +3,28 @@ use crate::common_util::SoftwareDescription;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct BorgServerSideConfiguration {
-    pub AppName: String,
-    pub entryPoint: String,
-    pub HostName: String,
-    pub SshPort: i32,
-    pub ServerName: String,
-    pub coreNumber: u8,
+    pub app_name: String,
+    pub entry_point: String,
+    pub host_name: String,
+    pub ssh_port: i32,
+    pub server_name: String,
+    pub core_number: u8,
     pub mem: String,
-    pub UserName: String,
-    pub LogDir: String,
-    pub BorgBin: String,
-    pub BorgInit: String,
-    pub BorgCreate: String,
-    pub BorgPrune: String,
-    pub BorgList: String,
-    pub BorgRepoPath: String,
-    pub LocalDir: String,
+    pub user_name: String,
+    pub log_dir: String,
+    pub borg_bin: String,
+    pub bBorg_init: String,
+    pub borg_create: String,
+    pub borg_prune: String,
+    pub borg_list: String,
+    pub borg_repo_path: String,
+    pub local_dir: String,
     pub task_cmd: BTreeMap<String, String>,
     pub crons: BTreeMap<String, String>,
-    pub BorgPrunePattern: String,
-    pub Softwares: Vec<SoftwareDescription>,
-    pub UninstallCommand: String,
-    pub PackageDir: String,
+    pub borg_prune_pattern: String,
+    pub softwares: Vec<SoftwareDescription>,
+    pub uninstall_command: String,
+    pub package_dir: String,
 }
 
 #[cfg(test)]
@@ -42,7 +42,7 @@ mod tests {
 
         let deserialized_conf: super::BorgServerSideConfiguration = serde_yaml::from_str(&buf).unwrap();
 
-        assert!(deserialized_conf.Softwares[0].PackageUrl.starts_with("https://"));
-        assert_eq!(deserialized_conf.Softwares[0].LocalName, "");
+        assert!(deserialized_conf.softwares[0].package_url.starts_with("https://"));
+        assert_eq!(deserialized_conf.softwares[0].local_name, "");
     }
 }

@@ -1,18 +1,20 @@
 use crate::app_state::AppState;
 use crate::models::fs_change_log_model::NewFsChangeLog;
-use notify::{RecommendedWatcher, Watcher, RecursiveMode, DebouncedEvent};
-use std::sync::mpsc::channel;
-use std::time::Duration;
-use std::thread;
-use futures::Future;
 use actix::prelude::*;
-
+use futures::Future;
+use notify::{DebouncedEvent, RecommendedWatcher, RecursiveMode, Watcher};
+use std::sync::mpsc::channel;
+use std::thread;
+use std::time::Duration;
 
 // struct DirWatcher {
 //     app_state: AppState,
 // }
 
-pub fn watch(watch_target: &str, app_state: AppState) -> notify::Result<()> {
+pub fn watch<T: AsRef<std::path::Path>>(
+    watch_target: T,
+    app_state: AppState,
+) -> notify::Result<()> {
     // Create a channel to receive the events.
     let (tx, rx) = channel();
 
@@ -25,53 +27,50 @@ pub fn watch(watch_target: &str, app_state: AppState) -> notify::Result<()> {
     watcher.watch(watch_target, RecursiveMode::Recursive)?;
 
     let ep = move |event: DebouncedEvent| {
-                            // let res: Result<NewFsChangeLog, actix::MailboxError> = app_state.db.send(NewFsChangeLog::from(&event)).from_err()
-                            // pub fn send<M>(&self, msg: M) -> Request<A, M>
-                            // res: actix::prelude::Request<db::DbExecutor, models::fs_change_log_model::NewFsChangeLog>
-                            let result_future = app_state.db.send(NewFsChangeLog::from(&event));
-Arbiter::spawn(
-                                    result_future.map(|res| {
-            match res {
-                Ok(result) => (),
-                Err(err) => println!("Got error: {}", err),
-            }
-        })
-        .map_err(|e| {
-            println!("Actor is probably died: {}", e);
-        }));
+        // let res: Result<NewFsChangeLog, actix::MailboxError> = app_state.db.send(NewFsChangeLog::from(&event)).from_err()
+        // pub fn send<M>(&self, msg: M) -> Request<A, M>
+        // res: actix::prelude::Request<db::DbExecutor, models::fs_change_log_model::NewFsChangeLog>
+        app_state.db.do_send(NewFsChangeLog::from(&event));
+        let result_future = app_state.db.send(NewFsChangeLog::from(&event));
+        Arbiter::spawn(
+            result_future
+                .map(|res| match res {
+                    Ok(result) => (),
+                    Err(err) => println!("Got error: {}", err),
+                })
+                .map_err(|e| {
+                    println!("Actor is probably died: {}", e);
+                }),
+        );
 
-
-                            // .from_err()
-                            // .and_then(|res| match res {
-                            //     Ok(fs_change_log_item) => Ok(()),
-                            //     Err(_) => Ok(()),
-                            // });
-                    // match event {
-                    //     DebouncedEvent::NoticeWrite(path_buf) => {
-                    //         DebouncedEvent::NoticeWrite;
-                    //         print!("notice_write: {:?}", path_buf);
-                    //     },
-                    //     DebouncedEvent::NoticeRemove(path_buf) => print!("{:?}", path_buf),
-                    //     DebouncedEvent::Create(path_buf) => print!("{:?}", path_buf),
-                    //     DebouncedEvent::Write(path_buf) => print!("{:?}", path_buf),
-                    //     DebouncedEvent::Chmod(path_buf) => print!("{:?}", path_buf),
-                    //     DebouncedEvent::Remove(path_buf) => print!("{:?}", path_buf),
-                    //     DebouncedEvent::Rename(src, dst) => print!("{:?}=>{:?}", src, dst),
-                    //     DebouncedEvent::Rescan => println!("rescan"),
-                    //     _ =>  println!("{:?}", event)
-                    // }
-
+        // .from_err()
+        // .and_then(|res| match res {
+        //     Ok(fs_change_log_item) => Ok(()),
+        //     Err(_) => Ok(()),
+        // });
+        // match event {
+        //     DebouncedEvent::NoticeWrite(path_buf) => {
+        //         DebouncedEvent::NoticeWrite;
+        //         print!("notice_write: {:?}", path_buf);
+        //     },
+        //     DebouncedEvent::NoticeRemove(path_buf) => print!("{:?}", path_buf),
+        //     DebouncedEvent::Create(path_buf) => print!("{:?}", path_buf),
+        //     DebouncedEvent::Write(path_buf) => print!("{:?}", path_buf),
+        //     DebouncedEvent::Chmod(path_buf) => print!("{:?}", path_buf),
+        //     DebouncedEvent::Remove(path_buf) => print!("{:?}", path_buf),
+        //     DebouncedEvent::Rename(src, dst) => print!("{:?}=>{:?}", src, dst),
+        //     DebouncedEvent::Rescan => println!("rescan"),
+        //     _ =>  println!("{:?}", event)
+        // }
     };
 
-    let handle = thread::spawn(move || {
-                    match rx.recv() {
-                Ok(event) => ep(event),
-                Err(e) => println!("watch error: {:?}", e),
-            }
+    // let handle =
+    thread::spawn(move || match rx.recv() {
+        Ok(event) => ep(event),
+        Err(e) => println!("watch error: {:?}", e),
     });
 
     Ok(())
-
 
     // This is a simple loop, but you may want to use more complex logic here,
     // for example to handle I/O.
@@ -96,18 +95,57 @@ Arbiter::spawn(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::{tempdir};
+    use crate::db;
+    use crate::fixture_util::{get_connect, run_system};
+    use crate::models::fs_change_log_model::FsChangeLog;
+    use chrono::Utc;
     use std::fs::File;
-    use std::io::{Write};
-    // #[test]
+    use std::io::Write;
+    use std::thread;
+    use std::thread::sleep;
+    use std::time::Duration;
+    use tempfile::tempdir;
 
+    // #[test]
     // fn test_w() {
     //     let dir = tempdir().unwrap();
     //     let file_path = dir.path().join("my-temporary-note.txt");
+    //     let (sys, addr, pool) = run_system();
+    //     watch(&dir, AppState { db: addr.clone()}).unwrap();
+
+    //     // thread::spawn(move || {
+    //     //     let _ = sys.run();
+    //     // });
+
     //     let mut file = File::create(file_path).unwrap();
     //     writeln!(file, "Brian was here. Briefly.").unwrap();
-    //     if let Err(e) = watch(dir.path().to_str().unwrap(), 2) {
-    //         println!("error: {:?}", e)
-    //     }
+    //     sleep(Duration::new(2, 0));
+
+    //     assert_eq!(FsChangeLog::all(10, &pool.get().unwrap()).unwrap().len(), 2);
+    //     // addr.send()
+
     // }
+    #[test]
+    fn test_arbit() {
+        dotenv::dotenv().ok();
+        System::run(move || {
+            let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+            let pool = db::init_pool(&database_url).unwrap();
+
+            let addr = SyncArbiter::start(3, move || db::DbExecutor(pool.clone()));
+            let nfs = NewFsChangeLog {
+                event_type: String::from("NoticeRemove"),
+                file_name: String::from(r"c:\abc.txt"),
+                new_name: None,
+                created_at: Utc::now().naive_utc(),
+                modified_at: None,
+                notified_at: Utc::now().naive_utc(),
+                size: -1,
+            };
+            println!("here");
+            addr.do_send(nfs);
+            println!("here1");
+        });
+        assert_eq!(FsChangeLog::all(10, &get_connect()).unwrap().len(), 1);
+    }
 }

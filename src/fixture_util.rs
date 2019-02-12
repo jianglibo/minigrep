@@ -3,6 +3,9 @@ use std::path::{PathBuf};
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use diesel::SqliteConnection;
 use crate::db;
+use actix::prelude::*;
+use db::DbExecutor;
+use crate::app_state::AppState;
 
 #[allow(dead_code)]
 pub fn get_fixture_file(postfix: &[&str], canonicalize: bool) -> std::io::Result<PathBuf> {
@@ -22,6 +25,21 @@ pub fn get_fixture_file(postfix: &[&str], canonicalize: bool) -> std::io::Result
 #[allow(dead_code)]
 pub fn print_stars<T: AsRef<str>>(v: T) {
     println!("xxxxxxxxxxxxxx{}xxxxxxxxxxxx", v.as_ref());
+}
+
+pub fn run_system() -> (actix::SystemRunner, Addr<DbExecutor>, diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>) {
+    let sys = actix::System::new("test-system");
+    dotenv::dotenv().ok();
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let pool = db::init_pool(&database_url).unwrap();
+
+    let pool1 = pool.clone();
+
+    let addr = SyncArbiter::start(3, move || DbExecutor(pool1.clone()));
+    // watch("abc", AppState { db: addr.clone()}).unwrap();
+    
+    (sys, addr, pool.clone())
+    // let _ = sys.run();
 }
 
 

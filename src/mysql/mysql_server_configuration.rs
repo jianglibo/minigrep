@@ -2,32 +2,32 @@ use std::collections::BTreeMap;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct MysqlServerSideConfiguration {
-    AppName: String,
-    MysqlVersion: String,
-    ServerName: String,
-    coreNumber: u8,
+    app_name: String,
+    mysql_version: String,
+    server_name: String,
+    core_number: u8,
     mem: String,
-    MysqlUser: String,
-    MysqlPassword: String,
-    ClientBin: String,
-    DumpBin: String,
-    DumpFilename: String,
-    MysqlAdminBin: String,
-    MysqlLogFile: String,
-    LocalDir: String,
-    LogDir: String,
+    mysql_user: String,
+    mysql_password: String,
+    client_bin: String,
+    dump_bin: String,
+    dump_filename: String,
+    mysql_admin_bin: String,
+    mysql_log_file: String,
+    local_dir: String,
+    log_dir: String,
     task_cmd: BTreeMap<String, String>,
     crons: BTreeMap<String, String>,
-    DumpPrunePattern: String,
-    Softwares: Vec<BTreeMap<String, String>>,
-    StartCommand: String,
-    StopCommand: String,
-    RestartCommand: String,
-    StatusCommand: String,
-    UninstallCommand: String,
-    ScriptDir: String,
-    PackageDir: String,
-    EntryPoint: String,
+    dump_prune_pattern: String,
+    softwares: Vec<BTreeMap<String, String>>,
+    start_command: String,
+    stop_command: String,
+    restart_command: String,
+    status_command: String,
+    uninstall_command: String,
+    script_dir: String,
+    package_dir: String,
+    entry_point: String,
 }
 
 #[cfg(test)]
@@ -45,6 +45,6 @@ mod tests {
 
         let deserialized_conf: super::MysqlServerSideConfiguration = serde_yaml::from_str(&buf).unwrap();
 
-        assert_eq!(deserialized_conf.AppName, "mysql");
+        assert_eq!(deserialized_conf.app_name, "mysql");
     }
 }

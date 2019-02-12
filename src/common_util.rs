@@ -10,6 +10,6 @@ pub fn send_string_to_client(str_content: &str) {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct SoftwareDescription {
-    pub PackageUrl: String,
-    pub LocalName: String,
+    pub package_url: String,
+    pub local_name: String,
 }

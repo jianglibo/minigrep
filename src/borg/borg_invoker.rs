@@ -30,7 +30,7 @@ impl BorgInvoker {
     }
 
     fn install_borg(self) -> &'static str {
-        if std::path::Path::new(&self.configuration.BorgBin).exists() {
+        if std::path::Path::new(&self.configuration.borg_bin).exists() {
             "AlreadyIntalled"
         } else {
             ""

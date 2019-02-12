@@ -1,10 +1,10 @@
 use crate::models::fs_change_log_model::{FsChangeLog, NewFsChangeLog};
 // use crate::schema::fs_change_log;
 use ::actix::prelude::*;
-use actix_web::*;
-use diesel::prelude::*;
-use diesel::r2d2::{ConnectionManager, Pool, PooledConnection, PoolError};
-use diesel::SqliteConnection;
+use ::actix_web::*;
+use ::diesel::prelude::*;
+use ::diesel::r2d2::{ConnectionManager, Pool, PooledConnection, PoolError};
+use ::diesel::SqliteConnection;
 // use std::sync::Arc;
 // use std::vec::Vec;
 
@@ -94,8 +94,12 @@ impl Handler<NewFsChangeLog> for DbExecutor {
             .filter(id.eq(&id))
             .load::<FsChangeLog>(conn)
             .map_err(|_| error::ErrorInternalServerError("Error loading person"))?;
-
-        Ok(items.pop().unwrap())
+        
+        let item = items.pop().unwrap();
+        if item.size == -1 {
+            System::current().stop();
+        }
+        Ok(item)
     }
 }
 

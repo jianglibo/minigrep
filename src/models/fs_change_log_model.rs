@@ -134,7 +134,7 @@ mod tests {
     #[test]
     fn test_list_fcl() {
         let conn = &get_connect();
-        FsChangeLog::delete_all(conn);
+        FsChangeLog::delete_all(conn).unwrap();
         assert_eq!(FsChangeLog::all(5, conn).unwrap().len(), 0);
 
         let nfs = NewFsChangeLog{
