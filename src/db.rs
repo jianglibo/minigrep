@@ -1,4 +1,4 @@
-use crate::models::fs_change_log_model::{FsChangeLog, NewFsChangeLog};
+use crate::models::fs_change_log_model::{NewFsChangeLog};
 // use crate::schema::fs_change_log;
 use ::actix::prelude::*;
 use ::actix_web::*;

@@ -12,10 +12,12 @@ extern crate yaml_rust;
 // use std::process;
 // use minigrep;
 
+mod app_state;
 mod borg;
 mod common_util;
 mod db;
 mod directory_access;
+mod error;
 mod fixture_util;
 pub mod models;
 mod mysql;
@@ -24,8 +26,6 @@ mod test_diesel;
 mod test_fun;
 mod test_string;
 mod watcher;
-mod app_state;
-mod error;
 
 #[macro_use]
 extern crate diesel;
@@ -39,23 +39,15 @@ extern crate serde_json;
 extern crate uuid;
 
 // extern crate json;
-
-use actix::prelude::*;
 use actix_web::{
-    http, middleware, server, App, Error, HttpMessage, HttpRequest, HttpResponse, Json,
-    State,
+    http, middleware, server, App, Error, HttpMessage, HttpRequest, HttpResponse, Json, State,
 };
 use bytes::BytesMut;
 
 use futures::{future, Future, Stream};
 
-use db::DbExecutor;
 use app_state::AppState;
 use models::fs_change_log_model::NewFsChangeLog;
-use watcher::watcher::DirWatcher;
-use watcher::watcher_dispatch::WatcherDispatch;
-
-
 
 /// Async request handler
 // fn add(
@@ -116,20 +108,25 @@ fn index_add(
                 // Send to the db for create
                 match r_fs_change_log_item {
                     Ok(fs_change_log_item) => {
-                        let res = state.db.send(fs_change_log_item).from_err()
-                            .and_then(|res| match res {
-                                Ok(fs_change_log_item) => Ok(HttpResponse::Ok().json(fs_change_log_item)),
-                                Err(_) => Ok(HttpResponse::InternalServerError().into()),
-                            });
+                        let res =
+                            state.db.send(fs_change_log_item).from_err().and_then(
+                                |res| match res {
+                                    Ok(fs_change_log_item) => {
+                                        Ok(HttpResponse::Ok().json(fs_change_log_item))
+                                    }
+                                    Err(_) => Ok(HttpResponse::InternalServerError().into()),
+                                },
+                            );
 
                         Box::new(res)
                     }
-                    Err(_) => Box::new(future::err(::actix_web::error::ErrorBadRequest("Json Decode Failed"))),
+                    Err(_) => Box::new(future::err(::actix_web::error::ErrorBadRequest(
+                        "Json Decode Failed",
+                    ))),
                 }
             },
         )
 }
-
 
 fn add2(
     (item, state): (Json<NewFsChangeLog>, State<AppState>),
@@ -146,55 +143,42 @@ fn add2(
         })
 }
 
-fn main() {
+fn do_main() {
     ::std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
     let sys = actix::System::new("diesel-example");
 
+    println!("*****************************0");
     // Start 3 db executor actors
     // let manager = ConnectionManager::<SqliteConnection>::new("test.db");
-    dotenv::dotenv().ok();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool = db::init_pool(&database_url).unwrap();
-
-    let wd = std::env::var("WATCH_DIR").expect("WATCH_DIR must be set.");
-
-    let db_addr = SyncArbiter::start(3, move || DbExecutor(pool.clone()));
-    let db_addr1 = db_addr.clone();
-
-    let wd_addr = Arbiter::start(move |ctx| {
-        // use futures::stream::once;
-        let dw = DirWatcher::new(&wd);
-        WatcherDispatch::add_stream(dw, ctx);
-        WatcherDispatch {
-            app_state: AppState { db: db_addr1 }
-        }
-    });
-
+    let (db_addr, _) = common_util::create_actors_env();
+    println!("*****************************1");
 
     // watch("abc", AppState { db: addr.clone()}).unwrap();
 
     // Start http server
     server::new(move || {
-        App::with_state(AppState { db: db_addr.clone() })
-            // enable logger
-            .middleware(middleware::Logger::default())
-            // This can be called with:
-            // curl -S --header "Content-Type: application/json" --request POST --data '{"name":"xyz"}'  http://127.0.0.1:8080/add
-            // Use of the extractors makes some post conditions simpler such
-            // as size limit protections and built in json validation.
-            .resource("/add2", |r| {
-                r.method(http::Method::POST)
-                    .with_async_config(add2, |(json_cfg,)| {
-                        json_cfg.0.limit(4096); // <- limit size of the payload
-                    })
-            })
-            //  Manual parsing would allow custom error construction, use of
-            //  other parsers *beside* json (for example CBOR, protobuf, xml), and allows
-            //  an application to standardise on a single parser implementation.
-            .resource("/add", |r| {
-                r.method(http::Method::POST).with_async(index_add)
-            })
+        App::with_state(AppState {
+            db: db_addr.clone(),
+        })
+        // enable logger
+        .middleware(middleware::Logger::default())
+        // This can be called with:
+        // curl -S --header "Content-Type: application/json" --request POST --data '{"name":"xyz"}'  http://127.0.0.1:8080/add
+        // Use of the extractors makes some post conditions simpler such
+        // as size limit protections and built in json validation.
+        .resource("/add2", |r| {
+            r.method(http::Method::POST)
+                .with_async_config(add2, |(json_cfg,)| {
+                    json_cfg.0.limit(4096); // <- limit size of the payload
+                })
+        })
+        //  Manual parsing would allow custom error construction, use of
+        //  other parsers *beside* json (for example CBOR, protobuf, xml), and allows
+        //  an application to standardise on a single parser implementation.
+        .resource("/add", |r| {
+            r.method(http::Method::POST).with_async(index_add)
+        })
         // .resource("/add/{name}", |r| r.method(http::Method::GET).with(add))
     })
     .bind("127.0.0.1:8080")
@@ -203,4 +187,9 @@ fn main() {
 
     println!("Started http server: 127.0.0.1:8080");
     let _ = sys.run();
+}
+
+fn main() {
+    println!("entering main....");
+    // do_main();
 }

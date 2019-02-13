@@ -1,9 +1,8 @@
-use crate::app_state::AppState;
 use crate::models::fs_change_log_model::NewFsChangeLog;
+use futures::{Async, Poll, Stream};
 use notify::{DebouncedEvent, RecommendedWatcher, RecursiveMode, Watcher};
 use std::sync::mpsc::channel;
 use std::time::Duration;
-use futures::{Stream, Poll, Async};
 
 pub struct DirWatcher {
     // app_state: AppState,
@@ -11,16 +10,22 @@ pub struct DirWatcher {
 }
 
 impl DirWatcher {
-    pub fn new(watch_target: &str/*, app_state: AppState*/) -> DirWatcher {
-            let (tx, rx) = channel();
+    pub fn new(watch_target: &str /*, app_state: AppState*/) -> DirWatcher {
+        let watch_path = std::path::Path::new(watch_target);
+        if !(watch_path.is_dir() && watch_path.exists()) {
+            panic!("watch target {} does't exists.", watch_target);
+        }
+        let (tx, rx) = channel();
 
-    // Automatically select the best implementation for your platform.
-    // You can also access each implementation directly e.g. INotifyWatcher.
-    let mut watcher: RecommendedWatcher = Watcher::new(tx, Duration::from_secs(2)).unwrap();
+        // Automatically select the best implementation for your platform.
+        // You can also access each implementation directly e.g. INotifyWatcher.
+        let mut watcher: RecommendedWatcher = Watcher::new(tx, Duration::from_secs(2)).unwrap();
 
-    // Add a path to be watched. All files and directories at that path and
-    // below will be monitored for changes.
-    watcher.watch(watch_target, RecursiveMode::Recursive).unwrap();
+        // Add a path to be watched. All files and directories at that path and
+        // below will be monitored for changes.
+        watcher
+            .watch(watch_target, RecursiveMode::Recursive)
+            .unwrap();
         DirWatcher {
             // app_state,
             rx,
@@ -39,7 +44,7 @@ impl Stream for DirWatcher {
             Err(tre) => {
                 println!("{:?}", tre);
                 Ok(Async::NotReady)
-            },
+            }
         }
     }
 }
@@ -128,9 +133,11 @@ impl Stream for DirWatcher {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common_util;
     use crate::db;
-    use crate::fixture_util::{get_connect};
+    use crate::fixture_util::get_connect;
     use crate::models::fs_change_log_model::FsChangeLog;
+    use ::actix::System;
     use chrono::Utc;
     use std::fs::File;
     use std::io::Write;
@@ -138,7 +145,6 @@ mod tests {
     use std::thread::sleep;
     use std::time::Duration;
     use tempfile::tempdir;
-    use ::actix::{System, SyncArbiter};
 
     // #[test]
     // fn test_w() {
@@ -162,11 +168,10 @@ mod tests {
     #[test]
     fn test_arbit() {
         dotenv::dotenv().ok();
+        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
         System::run(move || {
-            let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-            let pool = db::init_pool(&database_url).unwrap();
-
-            let addr = SyncArbiter::start(3, move || db::DbExecutor(pool.clone()));
+            let (db_addr, _) =
+                common_util::create_actors(database_url, 3, String::from("e:/not_exists"));
             let nfs = NewFsChangeLog {
                 event_type: String::from("NoticeRemove"),
                 file_name: String::from(r"c:\abc.txt"),
@@ -177,7 +182,7 @@ mod tests {
                 size: -1,
             };
             println!("here");
-            addr.do_send(nfs);
+            db_addr.do_send(nfs);
             println!("here1");
         });
         assert_eq!(FsChangeLog::all(10, &get_connect()).unwrap().len(), 1);

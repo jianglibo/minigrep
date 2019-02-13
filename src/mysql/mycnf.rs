@@ -229,8 +229,8 @@ mod tests {
         let kv = mycnf.get_config("mysqld", "log-error1");
         assert!(kv.is_none());
 
-        let kv = mycnf.get_config("mysqld", "log-error");
-        let expect = ("log-error".to_owned(), "/var/log/mysqld.log".to_owned());
+        let _kv = mycnf.get_config("mysqld", "log-error");
+        let _expect = ("log-error".to_owned(), "/var/log/mysqld.log".to_owned());
 
         mycnf.set_block_key_value("mysqld", "a", "b");
         let kv = mycnf.get_config("mysqld", "a");
@@ -254,9 +254,9 @@ mod tests {
             println!("{}", "yes");
         }
         let mut counter = 0;
-        let result = for i in 1..3 {};
+        let result = for _i in 1..3 {};
         assert_eq!((), result);
-        let result = 'abreadkablefor: for i in 1..3 {
+        let result = 'abreadkablefor: for _i in 1..3 {
             break 'abreadkablefor;
         };
         assert_eq!((), result);

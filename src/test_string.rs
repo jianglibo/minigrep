@@ -78,9 +78,9 @@ mod tests {
             assert!(as1.len() == *i);
         }
         // immutability is for variables.
-        let mut v_br = "a";
-        v_br = "b";
-        assert_eq!(v_br, "b");
+        let mut _v_br = "a";
+        _v_br = "b";
+        assert_eq!(_v_br, "b");
 
         let one_as = a_struct;
         println!("{:?}", one_as);

@@ -13,7 +13,7 @@ pub struct BorgServerSideConfiguration {
     pub user_name: String,
     pub log_dir: String,
     pub borg_bin: String,
-    pub bBorg_init: String,
+    pub borg_init: String,
     pub borg_create: String,
     pub borg_prune: String,
     pub borg_list: String,

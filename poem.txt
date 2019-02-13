@@ -15,6 +15,7 @@ diesel setup
 .env:
     DATABASE_URL=sqlitedb_in_here/abc.db
     SQLITE3_LIB_DIR=F:\sqlite-dll-win64-x64-3260000
+    WATCH_DIR=abc
 
 diesel migration generate create_posts
 diesel migration run

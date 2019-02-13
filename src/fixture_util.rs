@@ -5,7 +5,6 @@ use diesel::SqliteConnection;
 use crate::db;
 use actix::prelude::*;
 use db::DbExecutor;
-use crate::app_state::AppState;
 
 #[allow(dead_code)]
 pub fn get_fixture_file(postfix: &[&str], canonicalize: bool) -> std::io::Result<PathBuf> {
