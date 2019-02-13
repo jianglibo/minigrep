@@ -1,7 +1,7 @@
 use crate::app_state::AppState;
 use crate::models::fs_change_log_model::NewFsChangeLog;
-use crate::error::WatchError;
 use actix::prelude::*;
+use ::diesel::prelude::QueryResult;
 
 /**
  * This is an Actor which consume dirwatcher stream.
@@ -15,12 +15,12 @@ impl Actor for WatcherDispatch {
 }
 
 impl  Handler<NewFsChangeLog> for WatcherDispatch {
-    type Result = Result<(), WatchError>;
+    type Result = QueryResult<usize>;
 
     fn handle(&mut self, msg: NewFsChangeLog, _: &mut Self::Context) -> Self::Result {
         match self.app_state.db.try_send(msg) {
-            Ok(_) => Ok(()),
-            Err(_) => Err(WatchError::Unknown),
+            Ok(sz) => Ok(1),
+            Err(err) => Err(),
         }
     }
 }

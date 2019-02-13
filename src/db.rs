@@ -1,4 +1,5 @@
-use crate::models::fs_change_log_model::{NewFsChangeLog};
+use crate::models::fs_change_log_model::{FsChangeLog, NewFsChangeLog};
+use diesel::prelude::{QueryResult};
 // use crate::schema::fs_change_log;
 use ::actix::prelude::*;
 use ::actix_web::*;
@@ -33,9 +34,21 @@ impl Message for StopMe {
     type Result = ();
 }
 
-// impl Message for NewFsChangeLog {
-//     type Result = Result<FsChangeLog, Error>;
-// }
+pub struct ListFsChangeLog {
+    pub total: usize,
+}
+
+impl Default for ListFsChangeLog {
+    fn default() -> Self { 
+        Self {
+            total: 10,
+        }
+    }
+}
+
+impl Message for ListFsChangeLog {
+    type Result = QueryResult<Vec<FsChangeLog>>;
+}
 
 impl Actor for DbExecutor {
     type Context = SyncContext<Self>;
@@ -51,23 +64,34 @@ impl Handler<StopMe> for DbExecutor {
 
 impl Handler<NewFsChangeLog> for DbExecutor {
     // type Result = Result<FsChangeLog, Error>;
-    type Result = Result<(), WatchError>;
+    type Result = QueryResult<usize>;
 
     fn handle(&mut self, msg: NewFsChangeLog, _: &mut Self::Context) -> Self::Result {
-        use crate::schema::fs_change_log::dsl::*;
 
         let conn: &SqliteConnection = &self.0.get().unwrap();
 
-        diesel::insert_into(fs_change_log)
-            .values(&msg)
-            .execute(conn)
-            .map_err(|_| WatchError::Unknown)?;
+        FsChangeLog::create(msg, conn)
+
+        // diesel::insert_into(fs_change_log)
+        //     .values(&msg)
+        //     .execute(conn)
+        //     .map_err(|_| WatchError::Unknown)?;
 
         // let items = fs_change_log
         //     .filter(id.eq(&id))
         //     .load::<FsChangeLog>(conn)
         //     .map_err(|_| WatchError::Unknown)?;
-        Ok(())
+        // Ok(())
+    }
+}
+
+impl Handler<ListFsChangeLog> for DbExecutor {
+    type Result = QueryResult<Vec<FsChangeLog>>;
+
+    fn handle(&mut self, msg: ListFsChangeLog, _: &mut Self::Context) -> Self::Result {
+        let conn: &SqliteConnection = &self.0.get().unwrap();
+
+        FsChangeLog::all(msg.total as i64, conn)
     }
 }
 

@@ -9,7 +9,6 @@ use crate::schema::{
     fs_change_log, fs_change_log::dsl::{fs_change_log as all_fs_change_log}
 };
 use ::actix::prelude::Message;
-use crate::error::WatchError;
 
 
 #[derive(Queryable, Serialize)]
@@ -37,15 +36,14 @@ pub struct NewFsChangeLog {
 }
 
 impl Message for NewFsChangeLog {
-    type Result = Result<(), WatchError>;
+    type Result = QueryResult<usize>;
 }
 
 impl FsChangeLog {
-    pub fn create<'a>(new_fs_cl: NewFsChangeLog, conn: &SqliteConnection) -> usize {
+    pub fn create<'a>(new_fs_cl: NewFsChangeLog, conn: &SqliteConnection) -> QueryResult<usize> {
         diesel::insert_into(fs_change_log::table)
             .values(&new_fs_cl)
             .execute(conn)
-            .expect("Error saving new post")
     }
 
     pub fn delete_all(conn: &SqliteConnection) -> QueryResult<usize> {
@@ -153,8 +151,8 @@ mod tests {
             size: 0,
         };
 
-        let num: usize = FsChangeLog::create(nfs, conn);
-        assert_eq!(num, 1);
+        let num: QueryResult<usize> = FsChangeLog::create(nfs, conn);
+        assert_eq!(num.unwrap(), 1);
         let items: Vec<FsChangeLog> = FsChangeLog::all(5, conn).unwrap();
         assert_eq!(items.len(), 1);
         assert_eq!(&items[0].file_name, r"c:\abc.txt");
