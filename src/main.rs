@@ -28,7 +28,9 @@ extern crate diesel;
 extern crate dotenv;
 
 extern crate bytes;
+#[macro_use] extern crate log;
 extern crate env_logger;
+
 extern crate futures;
 extern crate serde;
 extern crate serde_json;
@@ -176,7 +178,7 @@ fn do_main() {
         })
         // .resource("/add/{name}", |r| r.method(http::Method::GET).with(add))
     })
-    .bind("127.0.0.1:8080")
+    .bind("127.0.0.1:8081")
     .unwrap()
     .start();
 
@@ -186,5 +188,5 @@ fn do_main() {
 
 fn main() {
     println!("entering main....");
-    // do_main();
+    do_main();
 }

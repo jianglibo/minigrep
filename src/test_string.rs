@@ -163,7 +163,7 @@ mod tests {
         assert!(y);
         match y {
             true => (),
-            false => ()
+            false => (),
         }
     }
 
@@ -180,9 +180,20 @@ mod tests {
         assert!(t.len() == 2);
 
         match t {
-            [a, b] => println!("{}{}", a, b)
+            [a, b] => println!("{}{}", a, b),
         };
         // let [a, b]: &str = "a=b=c".splitn(2, '=').into();
     }
 
+    #[test]
+    fn test_split_str1() {
+        // let rs = r"\xce\xde\xb7\xa8\xb4\xf2\xbf\xaa\xce\xc4\xbc\xfe\xa1\xb0e";
+        let i: u8 = "ce".parse().unwrap();
+        // let ss: Vec<u8> = rs
+        //     .split(r"\x")
+        //     .into_iter()
+        //     .flat_map(|s| s.)
+        //     .collect();
+        // assert_eq!(ss.len(), 5);
+    }
 }

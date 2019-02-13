@@ -18,18 +18,21 @@ impl  Handler<NewFsChangeLog> for WatcherDispatch {
     type Result = QueryResult<usize>;
 
     fn handle(&mut self, msg: NewFsChangeLog, _: &mut Self::Context) -> Self::Result {
+        let file_name = msg.file_name.clone();
         match self.app_state.db.try_send(msg) {
-            Ok(sz) => Ok(1),
-            Err(err) => Err(),
+            Ok(_) => (),
+            Err(_) => error!("process {}'s event failed.", file_name)
         }
+        Ok(1)
     }
 }
 
 impl StreamHandler<NewFsChangeLog, ()> for WatcherDispatch {
     fn handle(&mut self, item: NewFsChangeLog, _: &mut Context<WatcherDispatch>) {
+        let file_name = item.file_name.clone();
         match self.app_state.db.try_send(item) {
             Ok(_) => (),
-            Err(_) => (),
+            Err(_) => error!("process {}'s event failed.", file_name)
         }
     }
 }
