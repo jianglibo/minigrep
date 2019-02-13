@@ -137,7 +137,7 @@ mod tests {
     use crate::db;
     use crate::fixture_util::get_connect;
     use crate::models::fs_change_log_model::FsChangeLog;
-    use ::actix::System;
+    use ::actix::{System, Arbiter};
     use chrono::Utc;
     use std::fs::File;
     use std::io::Write;
@@ -145,6 +145,8 @@ mod tests {
     use std::thread::sleep;
     use std::time::Duration;
     use tempfile::tempdir;
+    use ::futures::Future;
+
 
     // #[test]
     // fn test_w() {
@@ -184,6 +186,19 @@ mod tests {
                 notified_at: Utc::now().naive_utc(),
                 size: -1,
             };
+            let ft = db_addr.send(db::ListFsChangeLog{total: 10}).from_err().and_then(|res| match res {
+                Ok(fs_logs) => {
+                    for i in &fs_logs {
+                        println!("{}", i.file_name);
+                    }
+                    assert_eq!(fs_logs.len(), 0);
+                    Ok(())
+                },
+                Err(_) => Err(::actix_web::error::ErrorInternalServerError("abc")),
+            });
+            Arbiter::spawn(ft.map_err(|e| {
+               println!("Actor is probably died: {}", e);
+            }));
             db_addr.do_send(nfs);
             db_addr.do_send(db::StopMe{});
         });
