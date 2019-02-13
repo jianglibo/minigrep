@@ -8,10 +8,6 @@ extern crate notify;
 extern crate serde_yaml;
 extern crate yaml_rust;
 
-// use std::env;
-// use std::process;
-// use minigrep;
-
 mod app_state;
 mod borg;
 mod common_util;
@@ -38,7 +34,6 @@ extern crate serde;
 extern crate serde_json;
 extern crate uuid;
 
-// extern crate json;
 use actix_web::{
     http, middleware, server, App, Error, HttpMessage, HttpRequest, HttpResponse, Json, State,
 };
