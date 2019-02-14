@@ -21,7 +21,9 @@ pub mod schema;
 mod test_diesel;
 mod test_fun;
 mod test_string;
+mod test_vec;
 mod watcher;
+mod common_message;
 
 #[macro_use]
 extern crate diesel;

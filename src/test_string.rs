@@ -185,38 +185,5 @@ mod tests {
         // let [a, b]: &str = "a=b=c".splitn(2, '=').into();
     }
 
-    #[test]
-    fn test_split_str1() {
-        fn parse_hex(hex_asm: &str) -> Vec<u8> {
-            let mut hex_bytes = hex_asm
-                .as_bytes()
-                .iter()
-                .filter_map(|b| match b {
-                    b'0'...b'9' => Some(b - b'0'),
-                    b'a'...b'f' => Some(b - b'a' + 10),
-                    b'A'...b'F' => Some(b - b'A' + 10),
-                    _ => None,
-                })
-                .fuse();
-            let mut bytes = Vec::new();
-            while let (Some(h), Some(l)) = (hex_bytes.next(), hex_bytes.next()) {
-                bytes.push(h << 4 | l)
-            }
-            bytes
-        }
-        // 1 => 00000001 << 4 => 00010000
-        // 48-57 => 0 - 9,  65-90 => A-Z, 97-122 => a-z
-        // Decimal	98_222
-        // Hex	0xff
-        // Octal	0o77
-        // Binary	0b1111_0000
-        // Byte (u8 only)	b'A'
-        let i: u8 = 2;
-        // https://en.wikipedia.org/wiki/Logical_shift
-        assert_eq!(0b0000_0001 << 4, 16);
-        // assert_eq!("0x10".parse::<u8>().unwrap(), 16);
-        assert_eq!(b'0', 48);
-        let u8s = parse_hex("10");
-        assert_eq!(u8s.get(0).unwrap(), &16);
-    }
+
 }

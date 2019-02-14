@@ -137,7 +137,8 @@ mod tests {
     use crate::db;
     use crate::fixture_util::get_connect;
     use crate::models::fs_change_log_model::FsChangeLog;
-    use ::actix::{System, Arbiter};
+    use ::actix::{Arbiter, System};
+    use ::futures::Future;
     use chrono::Utc;
     use std::fs::File;
     use std::io::Write;
@@ -145,8 +146,7 @@ mod tests {
     use std::thread::sleep;
     use std::time::Duration;
     use tempfile::tempdir;
-    use ::futures::Future;
-
+    use crate::common_message;
 
     // #[test]
     // fn test_w() {
@@ -175,8 +175,33 @@ mod tests {
         let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
         let test_watch_dir = std::env::var("TEST_WATCH_DIR").expect("TEST_WATCH_DIR must be set");
         System::run(move || {
-            let (db_addr, _) =
-                common_util::create_actors(database_url, 1, test_watch_dir);
+            let (db_addr, _) = common_util::create_actors(database_url, 1, test_watch_dir);
+            let db_addr1 = db_addr.clone();
+            let mut deleted = 0usize;
+            let ft = db_addr
+                .send(common_message::RemoveAll::FsChangeLog)
+                .from_err()
+
+                .and_then(move |res| {
+                    deleted = res.unwrap();
+                    // return future again.
+                    db_addr1.send(db::ListFsChangeLog { total: 10 })
+                    .from_err()
+                    .and_then(|res| match res {
+                        Ok(fs_logs) => {
+                            for i in &fs_logs {
+                                println!("{}", i.file_name);
+                            }
+                            assert_eq!(fs_logs.len(), 0);
+                            Ok(())
+                        }
+                        Err(_) => Err(::actix_web::error::ErrorInternalServerError("abc")),
+                    })
+                });
+
+            Arbiter::spawn(ft.map_err(|e| {
+                println!("Actor is probably died: {}", e);
+            }));
             let nfs = NewFsChangeLog {
                 event_type: String::from("NoticeRemove"),
                 file_name: String::from(r"c:\abc.txt"),
@@ -186,21 +211,8 @@ mod tests {
                 notified_at: Utc::now().naive_utc(),
                 size: -1,
             };
-            let ft = db_addr.send(db::ListFsChangeLog{total: 10}).from_err().and_then(|res| match res {
-                Ok(fs_logs) => {
-                    for i in &fs_logs {
-                        println!("{}", i.file_name);
-                    }
-                    assert_eq!(fs_logs.len(), 0);
-                    Ok(())
-                },
-                Err(_) => Err(::actix_web::error::ErrorInternalServerError("abc")),
-            });
-            Arbiter::spawn(ft.map_err(|e| {
-               println!("Actor is probably died: {}", e);
-            }));
             db_addr.do_send(nfs);
-            db_addr.do_send(db::StopMe{});
+            db_addr.do_send(db::StopMe {});
         });
         assert_eq!(FsChangeLog::all(10, &get_connect()).unwrap().len(), 1);
     }

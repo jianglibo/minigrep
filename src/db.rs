@@ -6,7 +6,7 @@ use ::actix_web::*;
 use ::diesel::prelude::*;
 use ::diesel::r2d2::{ConnectionManager, Pool, PooledConnection, PoolError};
 use ::diesel::SqliteConnection;
-use crate::error::WatchError;
+use crate::common_message::RemoveAll;
 // use std::sync::Arc;
 // use std::vec::Vec;
 
@@ -59,6 +59,19 @@ impl Handler<StopMe> for DbExecutor {
     fn handle(&mut self, _: StopMe, _:&mut Self::Context) -> Self::Result {
         System::current().stop();
         ()
+    }
+}
+
+impl Handler<RemoveAll> for DbExecutor {
+    type Result = QueryResult<usize>;
+    fn handle(&mut self, msg: RemoveAll, _: &mut Self::Context) -> Self::Result {
+        match msg {
+            RemoveAll::FsChangeLog => {
+                let conn: &SqliteConnection = &self.0.get().unwrap();
+                FsChangeLog::delete_all(conn)
+            },
+            _ => Ok(0)
+        }
     }
 }
 
