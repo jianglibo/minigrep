@@ -3,11 +3,16 @@ mod tests {
 
     #[test]
     fn test_push_vec() {
+        let vec1: Vec<u8> = Vec::with_capacity(5);
+        assert_eq!(vec1.len(), 0);
+        assert_eq!(vec1.capacity(), 5);
+
         let mut prev_u8: Vec<u8> = vec![0; 2];
         assert_eq!(prev_u8, [0, 0]);
         prev_u8.push(3);
         prev_u8.push(3);
-        assert_eq!(prev_u8, [3, 3]);
+        assert_eq!(prev_u8, [0, 0, 3, 3]);
+
     }
 
     #[test]

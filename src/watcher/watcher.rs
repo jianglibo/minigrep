@@ -214,6 +214,7 @@ mod tests {
             db_addr.do_send(nfs);
             db_addr.do_send(db::StopMe {});
         });
+        println!("assert one.");
         assert_eq!(FsChangeLog::all(10, &get_connect()).unwrap().len(), 1);
     }
 }
