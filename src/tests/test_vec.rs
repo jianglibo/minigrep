@@ -2,7 +2,18 @@
 mod tests {
 
     #[test]
-    fn test_push_vec() {
+    fn test_first() {
+        let v_slice = [1, 2, 3];
+        let mut first_item = None;
+        if let Some((first, _)) = v_slice.split_first() {
+            first_item = Some(first);
+        }
+        assert_eq!(first_item, Some(&1));
+    }
+
+    #[test]
+    fn test_capacity_len() {
+        // capacity doesn't equal to len.
         let vec1: Vec<u8> = Vec::with_capacity(5);
         assert_eq!(vec1.len(), 0);
         assert_eq!(vec1.capacity(), 5);
@@ -13,6 +24,13 @@ mod tests {
         prev_u8.push(3);
         assert_eq!(prev_u8, [0, 0, 3, 3]);
 
+        let mut iter_1 = vec![1,2,3].into_iter();
+        let mut i = 0;
+        if let (Some(ref _a), Some(ref _b)) = (iter_1.next(), iter_1.next()) {
+            i += 1;
+        }
+        assert_eq!(iter_1.len(), 3);
+        assert_eq!(i, 1);
     }
 
     #[test]

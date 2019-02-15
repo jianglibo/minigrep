@@ -18,10 +18,7 @@ mod fixture_util;
 pub mod models;
 mod mysql;
 pub mod schema;
-mod test_diesel;
-mod test_fun;
-mod test_string;
-mod test_vec;
+mod tests;
 mod watcher;
 mod common_message;
 
